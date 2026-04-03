@@ -22,32 +22,50 @@ class ValidZone(BaseModel):
 
     @model_validator(mode='after')
     def validate(self) -> "ValidZone":
-        allowed_types = ['start_hub', 'end_hub', 'hub']
+        allowed_types = ['start_hub:', 'end_hub:', 'hub:']
         if self.zone_type not in allowed_types:
             raise MapError(f"[ERROR]: Invalid zone type {self.zone_type}")
+        return self
 
 
 class ValidConnection(BaseModel):
     linked_zones: str
+    metadata: list[str]
 
     @model_validator(mode='after')
     def validate(self) -> "ValidConnection":
         try:
-            zones = self.linked_zones.split('-')
+            self.linked_zones.split('-')
         except Exception:
-            raise MapError
+            raise MapError("[ERROR]: Invalid connection: expected <name1>-"
+                           f"<name2>, got {self.linked_zones}")
+        return self
 
 
-def get_parsed_map(path: str) -> ValidMap:
+def get_parsed_map(path: str) -> tuple[list[ValidZone], list[ValidConnection]]:
     try:
         with open(path, "r") as file:
-            data = file.read()
+            data = file.readlines()
         nodes = []
         connections = []
         for line in data:
+            print(line)
             args = line.split(' ')
-            if args[0] == 'connection':
-                connections.append()
+            print(args)
+            if args[0].startswith('#') or args[0].startswith('\n') or line == '':
+                continue
+            elif line.startswith('nb_drones'):
+                print("Work in progress here")
+            elif args[0] == 'connection:':
+                if args[2]:
+                    connections.append(
+                        ValidConnection(linked_zones=args[1],
+                                        metadata=args[2])
+                    )
+                else:
+                    connections.append(
+                        ValidConnection(linked_zones=args[1])
+                    )
             else:
                 nodes.append(
                     ValidZone(zone_type=args[0],
@@ -55,6 +73,7 @@ def get_parsed_map(path: str) -> ValidMap:
                               x_coord=args[2],
                               y_coord=args[3],
                               metadata=args[4].split(' '))
-            )
+                )
     except FileNotFoundError:
         raise FileNotFoundError(f"[ERROR]: map file not found in {path}")
+    return nodes, connections

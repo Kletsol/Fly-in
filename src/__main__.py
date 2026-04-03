@@ -1,8 +1,13 @@
-from src import ValidMap, get_parsed_map
+from src import ValidZone, ValidConnection, get_parsed_map
 
 
 def main():
-    args = get_parsed_map()
+    try:
+        zones, connections = get_parsed_map("maps/easy/01_linear_path.txt")
+        print(zones)
+        print(connections)
+    except Exception as e:
+        print(e)
 
 
 main()
