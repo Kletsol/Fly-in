@@ -1,4 +1,8 @@
-from pydantic import BaseModel, model_validator
+from typing import Any, Optional
+
+
+class ConfigError(Exception):
+    pass
 
 
 class MapError(Exception):
@@ -13,67 +17,163 @@ class ConnectionError(Exception):
     pass
 
 
-class ValidZone(BaseModel):
-    zone_type: str
-    name: str
-    x_coord: int
-    y_coord: int
-    metadata: list[str]
-
-    @model_validator(mode='after')
-    def validate(self) -> "ValidZone":
-        allowed_types = ['start_hub:', 'end_hub:', 'hub:']
-        if self.zone_type not in allowed_types:
-            raise MapError(f"[ERROR]: Invalid zone type {self.zone_type}")
-        return self
-
-
-class ValidConnection(BaseModel):
-    linked_zones: str
-    metadata: list[str]
-
-    @model_validator(mode='after')
-    def validate(self) -> "ValidConnection":
-        try:
-            self.linked_zones.split('-')
-        except Exception:
-            raise MapError("[ERROR]: Invalid connection: expected <name1>-"
-                           f"<name2>, got {self.linked_zones}")
-        return self
-
-
-def get_parsed_map(path: str) -> tuple[list[ValidZone], list[ValidConnection]]:
+def get_parsed_map(path: str) -> dict[str, Any]:
     try:
         with open(path, "r") as file:
-            data = file.readlines()
+            raw_config = file.readlines()
+        start_count = 0
+        end_count = 0
+        line_count = 1
         nodes = []
         connections = []
-        for line in data:
-            print(line)
-            args = line.split(' ')
-            print(args)
-            if args[0].startswith('#') or args[0].startswith('\n') or line == '':
+        for line in raw_config:
+
+            # Ignore comments
+            if line.startswith('#'):
                 continue
-            elif line.startswith('nb_drones'):
-                print("Work in progress here")
-            elif args[0] == 'connection:':
-                if args[2]:
-                    connections.append(
-                        ValidConnection(linked_zones=args[1],
-                                        metadata=args[2])
-                    )
-                else:
-                    connections.append(
-                        ValidConnection(linked_zones=args[1])
-                    )
-            else:
-                nodes.append(
-                    ValidZone(zone_type=args[0],
-                              name=args[1],
-                              x_coord=args[2],
-                              y_coord=args[3],
-                              metadata=args[4].split(' '))
-                )
+
+            # Nb_drones
+            if line.startswith('nb_drones'):
+                try:
+                    drones = get_drones(line)
+                except Exception as e:
+                    raise Exception(f"Line {line_count} - {e}")
+
+                if line_count > 1:
+                    raise ConfigError("[ERROR]: nb_drones has to be"
+                                      "on first line")
+
+            if '[' in line:
+                splitted_line = line.split("[")
+                caracs = splitted_line[0].strip(' ').split(' ')
+                metadata = splitted_line[1].rstrip(']\n').split(' ')
+
+            # Start
+            if line.startswith(('start_hub', 'end_hub', 'hub')):
+                if line.startswith('start_hub:'):
+                    start_count += 1
+                    if start_count > 1:
+                        raise MapError("[ERROR]: Too many start hubs in map")
+                elif line.startswith('end_hub:'):
+                    end_count += 1
+                    if end_count > 1:
+                        raise MapError("[ERROR]: Too many end hubs in map")
+                try:
+                    nodes.append(get_zone(nodes, caracs, metadata))
+                except Exception as e:
+                    raise Exception(f"Line {line_count} - {e}")
+
+            # Connections
+            if line.startswith('connection'):
+                try:
+                    if '[' in line:
+                        connections.append(
+                            get_connection(nodes, connections,
+                                           caracs, metadata))
+                    else:
+                        connections.append(
+                            get_connection(nodes, connections,
+                                           line.split(' ')))
+                except Exception as e:
+                    raise Exception(f"Line {line_count} - {e}")
+
+            line_count += 1
+
     except FileNotFoundError:
         raise FileNotFoundError(f"[ERROR]: map file not found in {path}")
+    config = {'drones': drones,
+              'nodes': nodes,
+              'connections': connections}
+    verify_metadata(nodes, connections)
+    return config
+
+
+def get_drones(line: str) -> list:
+    data = line.split(' ')
+    if len(data) < 2:
+        raise MapError("[ERROR]: No number of drones found")
+
+    # Int and value verification
+    try:
+        nb_drones = int(data[1])
+    except ValueError:
+        raise MapError("[ERROR]: Number of drones must be an int")
+    if nb_drones < 0:
+        raise MapError("[ERROR]: Number of drones must be positive")
+
+    # ID and localisation application
+    drones = []
+    for i in range(1, nb_drones + 1):
+        id = 'D' + str(i)
+        drones.append({'id': id,
+                       'place': None})
+
+    return drones
+
+
+def get_zone(prev_zones: list, line: list[str],
+             metadata: Optional[list[str]] = None) -> dict:
+    if len(line) != 4:
+        raise ZoneError("[ERROR]: Invalid count of arguments in line")
+
+    # Name availability
+    for zone in prev_zones:
+        if line[1] == zone['name']:
+            raise ZoneError(f"[ERROR]: name '{line[1]}' already taken")
+
+    # Int verification
+    try:
+        int(line[2])
+        int(line[3])
+    except ValueError:
+        raise ValueError("[ERROR]: Coordinates have to be of type int")
+
+    return {'zone_type': line[0].rstrip(':'),
+            'name': line[1],
+            'x_coord': line[2],
+            'y_coord': line[3],
+            'metadata': metadata}
+
+
+def get_connection(prev_zones: list, prev_connections: list, line: list[str],
+                   metadata: Optional[list[str]] = None) -> dict:
+
+    # Duplication check
+    linked_zones = line[1].rstrip('\n').split('-')
+    for connection in prev_connections:
+        if linked_zones[0] in connection['linked_zones'] and\
+                linked_zones[1] in connection['linked_zones']:
+            raise ConnectionError("[ERROR]: Duplicated connections"
+                                  "are not allowed")
+
+    # Existing zones check
+    available_zones = []
+    for zone in prev_zones:
+        available_zones.append(zone['name'])
+    if linked_zones[0] not in available_zones or\
+            linked_zones[1] not in available_zones:
+        raise ConnectionError("[ERROR]: linked zone doesn't exist")
+
+    return {'linked_zones': linked_zones,
+            'metadata': metadata}
+
+
+def verify_metadata(nodes, connections) -> dict:
+    output = {}
+    for node in nodes:
+        for data in node['metadata']:
+            data = data.split('=')
+            output.update({data[0]: data[1]})
+            node['metadata'] = output
+            print(output)
+            if data[0] not in ["zone", "color", "max_drones"]:
+                raise MapError("[ERROR]: invalid metadata block")
+
+
+
+
+
+            # if type == "connection":
+            #     if data[0] not in ["max_link_capacity"]:
+            #         raise MapError("[ERROR]: invalid metadata block")
     return nodes, connections

@@ -1,4 +1,2 @@
-from src.parsing.maps import ValidZone, ValidConnection, get_parsed_map
-__all__ = [ValidZone,
-           ValidConnection,
-           get_parsed_map]
+from src.parsing.maps import get_parsed_map
+__all__ = [get_parsed_map]

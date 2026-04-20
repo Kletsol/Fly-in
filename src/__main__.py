@@ -1,11 +1,15 @@
-from src import ValidZone, ValidConnection, get_parsed_map
+from src import get_parsed_map
 
 
 def main():
     try:
-        zones, connections = get_parsed_map("maps/easy/01_linear_path.txt")
-        print(zones)
-        print(connections)
+        config = get_parsed_map("maps/medium/02_circular_loop.txt")
+        for drone in config['drones']:
+            print(drone)
+        for zone in config['nodes']:
+            print(zone)
+        for connection in config['connections']:
+            print(connection)
     except Exception as e:
         print(e)
 
