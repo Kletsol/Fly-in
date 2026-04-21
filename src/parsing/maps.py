@@ -24,32 +24,32 @@ def get_parsed_map(path: str) -> dict[str, Any]:
         start_count = 0
         end_count = 0
         line_count = 1
+        comms_count = 0
         nodes = []
         connections = []
         for line in raw_config:
 
-            # Ignore comments
-            if line.startswith('#'):
+            # Ignore comments and empty lines
+            if line.startswith(('#', '\n')):
+                comms_count += 1
                 continue
 
+            elif '#' in line:
+                line = line.split('#')[0].rstrip(' ')
+
             # Nb_drones
-            if line.startswith('nb_drones'):
+            elif line.startswith('nb_drones'):
                 try:
                     drones = get_drones(line)
                 except Exception as e:
-                    raise Exception(f"Line {line_count} - {e}")
+                    raise Exception(f"Line {line_count + comms_count} - {e}")
 
                 if line_count > 1:
                     raise ConfigError("[ERROR]: nb_drones has to be"
                                       "on first line")
 
-            if '[' in line:
-                splitted_line = line.split("[")
-                caracs = splitted_line[0].strip(' ').split(' ')
-                metadata = splitted_line[1].rstrip(']\n').split(' ')
-
             # Start
-            if line.startswith(('start_hub', 'end_hub', 'hub')):
+            elif line.startswith(('start_hub', 'end_hub', 'hub')):
                 if line.startswith('start_hub:'):
                     start_count += 1
                     if start_count > 1:
@@ -59,14 +59,30 @@ def get_parsed_map(path: str) -> dict[str, Any]:
                     if end_count > 1:
                         raise MapError("[ERROR]: Too many end hubs in map")
                 try:
-                    nodes.append(get_zone(nodes, caracs, metadata))
+                    if '[' in line:
+                        splitted_line = line.split("[")
+                        caracs = splitted_line[0].strip(' ').split(' ')
+                        metadata = splitted_line[1].rstrip(']\n').split(' ')
+                        valid_metadata = verify_metadata(metadata, "zone")
+                        if line.startswith(('start_hub', 'end_hub')):
+                            if 'max_drones' in valid_metadata and\
+                                    valid_metadata['max_drones'] < len(drones):
+                                raise ZoneError("[ERROR]: insufficent space "
+                                                "for all drones")
+                        nodes.append(get_zone(nodes, caracs, valid_metadata))
+                    else:
+                        nodes.append(get_zone(nodes, line.split(' ')))
                 except Exception as e:
-                    raise Exception(f"Line {line_count} - {e}")
+                    raise Exception(f"Line {line_count + comms_count} - {e}")
 
             # Connections
-            if line.startswith('connection'):
+            elif line.startswith('connection'):
                 try:
                     if '[' in line:
+                        splitted_line = line.split("[")
+                        caracs = splitted_line[0].strip(' ').split(' ')
+                        metadata = splitted_line[1].rstrip(']\n').split(' ')
+                        metadata = verify_metadata(metadata, "connection")
                         connections.append(
                             get_connection(nodes, connections,
                                            caracs, metadata))
@@ -75,7 +91,12 @@ def get_parsed_map(path: str) -> dict[str, Any]:
                             get_connection(nodes, connections,
                                            line.split(' ')))
                 except Exception as e:
-                    raise Exception(f"Line {line_count} - {e}")
+                    raise Exception(f"Line {line_count + comms_count} - {e}")
+
+            # Other cases
+            else:
+                raise ConfigError(f"Line {line_count + comms_count}"
+                                  "- [ERROR]: Unknown area type")
 
             line_count += 1
 
@@ -84,7 +105,6 @@ def get_parsed_map(path: str) -> dict[str, Any]:
     config = {'drones': drones,
               'nodes': nodes,
               'connections': connections}
-    verify_metadata(nodes, connections)
     return config
 
 
@@ -123,15 +143,15 @@ def get_zone(prev_zones: list, line: list[str],
 
     # Int verification
     try:
-        int(line[2])
-        int(line[3])
+        x_coord = int(line[2])
+        y_coord = int(line[3])
     except ValueError:
         raise ValueError("[ERROR]: Coordinates have to be of type int")
 
     return {'zone_type': line[0].rstrip(':'),
             'name': line[1],
-            'x_coord': line[2],
-            'y_coord': line[3],
+            'x_coord': x_coord,
+            'y_coord': y_coord,
             'metadata': metadata}
 
 
@@ -158,22 +178,29 @@ def get_connection(prev_zones: list, prev_connections: list, line: list[str],
             'metadata': metadata}
 
 
-def verify_metadata(nodes, connections) -> dict:
+def verify_metadata(metadata: list[str], area_type: str) -> dict:
     output = {}
-    for node in nodes:
-        for data in node['metadata']:
-            data = data.split('=')
-            output.update({data[0]: data[1]})
-            node['metadata'] = output
-            print(output)
-            if data[0] not in ["zone", "color", "max_drones"]:
-                raise MapError("[ERROR]: invalid metadata block")
-
-
-
-
-
-            # if type == "connection":
-            #     if data[0] not in ["max_link_capacity"]:
-            #         raise MapError("[ERROR]: invalid metadata block")
-    return nodes, connections
+    for data in metadata:
+        data = data.split('=')
+        output.update({data[0]: data[1]})
+        if area_type == 'zone':
+            if data[0] not in ['zone', 'color', 'max_drones']:
+                raise MapError(f"[ERROR]: invalid metadata block '{data[0]}'")
+            if data[0] == 'zone':
+                if data[1] not in ['normal', 'blocked',
+                                   'restricted', 'priority']:
+                    raise MapError(f"[ERROR]: invalid zone type '{data[1]}'")
+        if area_type == 'connection':
+            if data[0] not in ['max_link_capacity']:
+                raise MapError(f"[ERROR]: invalid metadata block '{data[0]}'")
+        if data[0] == 'max_drones' or data[0] == 'max_link_capacity':
+            try:
+                value = int(data[1])
+                if value < 0:
+                    raise ConfigError("[ERROR]: capacity value "
+                                      "must be positive int")
+                output.update({data[0]: value})
+            except ValueError:
+                raise ConfigError("[ERROR]: capacity value "
+                                  "must be positive int")
+    return output
