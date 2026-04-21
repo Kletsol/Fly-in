@@ -24,14 +24,14 @@ def get_parsed_map(path: str) -> dict[str, Any]:
         start_count = 0
         end_count = 0
         line_count = 1
-        comms_count = 0
+        comm_count = 0
         nodes = []
         connections = []
         for line in raw_config:
 
             # Ignore comments and empty lines
             if line.startswith(('#', '\n')):
-                comms_count += 1
+                comm_count += 1
                 continue
 
             elif '#' in line:
@@ -42,7 +42,8 @@ def get_parsed_map(path: str) -> dict[str, Any]:
                 try:
                     drones = get_drones(line)
                 except Exception as e:
-                    raise Exception(f"Line {line_count + comms_count} - {e}")
+                    raise Exception(f"\033[0;31mLine {line_count + comm_count}"
+                                    f" - {e}\033[0;0m")
 
                 if line_count > 1:
                     raise ConfigError("[ERROR]: nb_drones has to be"
@@ -73,7 +74,8 @@ def get_parsed_map(path: str) -> dict[str, Any]:
                     else:
                         nodes.append(get_zone(nodes, line.split(' ')))
                 except Exception as e:
-                    raise Exception(f"Line {line_count + comms_count} - {e}")
+                    raise Exception(f"\033[0;31mLine {line_count + comm_count}"
+                                    f" - {e}\033[0;0m")
 
             # Connections
             elif line.startswith('connection'):
@@ -91,12 +93,13 @@ def get_parsed_map(path: str) -> dict[str, Any]:
                             get_connection(nodes, connections,
                                            line.split(' ')))
                 except Exception as e:
-                    raise Exception(f"Line {line_count + comms_count} - {e}")
+                    raise Exception(f"\033[0;31mLine {line_count + comm_count}"
+                                    f" - {e}\033[0;0m")
 
             # Other cases
             else:
-                raise ConfigError(f"Line {line_count + comms_count}"
-                                  "- [ERROR]: Unknown area type")
+                raise ConfigError(f"\033[0;31mLine {line_count + comm_count}"
+                                  "- [ERROR]: Unknown area type\033[0;0m")
 
             line_count += 1
 
@@ -163,7 +166,7 @@ def get_connection(prev_zones: list, prev_connections: list, line: list[str],
     for connection in prev_connections:
         if linked_zones[0] in connection['linked_zones'] and\
                 linked_zones[1] in connection['linked_zones']:
-            raise ConnectionError("[ERROR]: Duplicated connections"
+            raise ConnectionError("[ERROR]: Duplicated connections "
                                   "are not allowed")
 
     # Existing zones check
