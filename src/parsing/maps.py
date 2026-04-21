@@ -185,6 +185,8 @@ def verify_metadata(metadata: list[str], area_type: str) -> dict:
     output = {}
     for data in metadata:
         data = data.split('=')
+        if len(data) < 2:
+            raise ConfigError(f"[ERROR]: invalid metadata block {data}")
         output.update({data[0]: data[1]})
         if area_type == 'zone':
             if data[0] not in ['zone', 'color', 'max_drones']:
