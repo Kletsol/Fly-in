@@ -28,8 +28,10 @@ def main():
             start = zone
         if zone.type == 'end_hub':
             end = zone
+    print("\n=== PATHFINDING ===\n")
     pathfinder = PathFinder(start, end, zones, links, drones)
-    pathfinder.djikstra()
+    pathfinder.initiate_drones()
+    pathfinder.initiate_dict(0)
     visualizer = Visualizer(zones, links, None)
     visualizer.on_execute()
 
