@@ -8,7 +8,7 @@ class Drone:
 
     def get_position(self):
         return self.__position
-    
+
     def set_position(self, position) -> None:
         self.__position = position
         return None

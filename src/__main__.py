@@ -1,4 +1,4 @@
-from src import get_parsed_map, Visualizer, Zone, Connection, Drone, PathFinder
+from src import get_parsed_map, Visualizer, Zone, Connection, Drone, Dijkstra
 
 
 def main():
@@ -6,7 +6,7 @@ def main():
     links = []
     drones = []
     try:
-        config = get_parsed_map("maps/easy/01_linear_path.txt")
+        config = get_parsed_map("maps/easy/02_simple_fork.txt")
         print("\n=== DRONES ===\n")
         for drone in config['drones']:
             drones.append(Drone(drone['id'], drone['place']))
@@ -17,6 +17,7 @@ def main():
             zones.append(Zone(zone))
             print(zones[-1].get_coords())
             print(zones[-1].get_rgb())
+            print(zones[-1].get_metadata())
         print("\n=== CONNECTIONS ===\n")
         for connection in config['connections']:
             links.append(Connection(connection))
@@ -29,9 +30,10 @@ def main():
         if zone.type == 'end_hub':
             end = zone
     print("\n=== PATHFINDING ===\n")
-    pathfinder = PathFinder(start, end, zones, links, drones)
+    pathfinder = Dijkstra(start, end, zones, links, drones)
     pathfinder.initiate_drones()
     pathfinder.initiate_dict(0)
+    pathfinder.process()
     visualizer = Visualizer(zones, links, None)
     visualizer.on_execute()
 

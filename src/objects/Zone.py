@@ -6,6 +6,8 @@ class Zone:
         self.__y_coord = zone['y_coord']
         if 'metadata' in zone.keys():
             self.__metadata = zone['metadata']
+            if 'zone_type' in self.__metadata:
+                self.__zone_type = self.__metadata['zone_type']
 
     def get_coords(self):
         return self.__x_coord, self.__y_coord
@@ -56,11 +58,28 @@ class Zone:
             case _:
                 return (255, 255, 255)
 
-    def get_next_zones(self, connections) -> list:
+    def get_next_zones(self, zones, connections) -> list:
         next_zones = []
         for connection in connections:
-            if connection['linked_zones'][0] == self.name:
-                next_zones.append(connection['linked_zones'][1])
-            elif connection['linked_zones'][1] == self.name:
-                next_zones.append(connection['linked_zones'][0])
+            if connection.get_linked_zones()[0] == self.name:
+                for zone in zones:
+                    if connection.get_linked_zones()[1] == zone.name:
+                        next_zones.append(zone)
+            elif connection.get_linked_zones()[1] == self.name:
+                for zone in zones:
+                    if connection.get_linked_zones()[0] == zone.name:
+                        next_zones.append(zone)
         return next_zones
+
+    def get_cost(self) -> float:
+        try:
+            if self.__zone_type == 'normal':
+                return 1.0
+            if self.__zone_type == 'restricted':
+                return 2.0
+            if self.__zone_type == 'priority':
+                return 0.9
+            if self.__zone_type == 'blocked':
+                return -1
+        except Exception:
+            return 1.0
