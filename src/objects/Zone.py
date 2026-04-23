@@ -9,7 +9,7 @@ class Zone:
 
     def get_coords(self):
         return self.__x_coord, self.__y_coord
-    
+
     def get_visual_coords(self):
         return [self.__x_coord * 180 + 80, self.__y_coord * 180 + 700]
 
@@ -55,3 +55,12 @@ class Zone:
                 return (0, 153, 153)
             case _:
                 return (255, 255, 255)
+
+    def get_next_zones(self, connections) -> list:
+        next_zones = []
+        for connection in connections:
+            if connection['linked_zones'][0] == self.name:
+                next_zones.append(connection['linked_zones'][1])
+            elif connection['linked_zones'][1] == self.name:
+                next_zones.append(connection['linked_zones'][0])
+        return next_zones

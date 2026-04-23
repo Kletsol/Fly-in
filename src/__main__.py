@@ -1,14 +1,17 @@
-from src import get_parsed_map, Visualizer, Zone, Connection
+from src import get_parsed_map, Visualizer, Zone, Connection, Drone, PathFinder
 
 
 def main():
     zones = []
     links = []
+    drones = []
     try:
-        config = get_parsed_map("maps/custom/Eternal_Tower_of_Doom.txt")
+        config = get_parsed_map("maps/easy/01_linear_path.txt")
         print("\n=== DRONES ===\n")
         for drone in config['drones']:
-            print(drone)
+            drones.append(Drone(drone['id'], drone['place']))
+            print(drones[-1].get_id())
+            print(drones[-1].get_position())
         print("\n=== ZONES ===\n")
         for zone in config['nodes']:
             zones.append(Zone(zone))
@@ -20,6 +23,13 @@ def main():
             print(connection)
     except Exception as e:
         print(e)
+    for zone in zones:
+        if zone.type == 'start_hub':
+            start = zone
+        if zone.type == 'end_hub':
+            end = zone
+    pathfinder = PathFinder(start, end, zones, links, drones)
+    pathfinder.djikstra()
     visualizer = Visualizer(zones, links, None)
     visualizer.on_execute()
 
