@@ -1,4 +1,4 @@
-from src import get_parsed_map, Visualizer, Zone, Connection, Drone, Dijkstra
+from src import get_parsed_map, Visualizer, Zone, Connection, Drone, PathFinder
 
 
 def main():
@@ -30,7 +30,7 @@ def main():
         if zone.type == 'end_hub':
             end = zone
     print("\n=== PATHFINDING ===\n")
-    pathfinder = Dijkstra(start, end, zones, links, drones)
+    pathfinder = PathFinder(start, end, zones, links, drones)
     pathfinder.initiate_drones()
     pathfinder.initiate_dict(0)
     pathfinder.process()

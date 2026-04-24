@@ -15,7 +15,7 @@ class Zone:
     def get_visual_coords(self):
         return [self.__x_coord * 180 + 80, self.__y_coord * 180 + 700]
 
-    def get_metadata(self):
+    def get_metadata(self) -> dict:
         return self.__metadata
 
     def get_color(self) -> str:
@@ -58,16 +58,16 @@ class Zone:
             case _:
                 return (255, 255, 255)
 
-    def get_next_zones(self, zones, connections, previous_zone) -> list:
+    def get_next_zones(self, zones, connections) -> list:
         next_zones = []
         for connection in connections:
             if connection.get_linked_zones()[0] == self.name:
                 for zone in zones:
-                    if connection.get_linked_zones()[1] == zone.name and zone != previous_zone:
+                    if connection.get_linked_zones()[1] == zone.name:
                         next_zones.append(zone)
             elif connection.get_linked_zones()[1] == self.name:
                 for zone in zones:
-                    if connection.get_linked_zones()[0] == zone.name and zone != previous_zone:
+                    if connection.get_linked_zones()[0] == zone.name:
                         next_zones.append(zone)
         return next_zones
 
@@ -83,3 +83,9 @@ class Zone:
                 return -1
         except Exception:
             return 1.0
+
+    def get_capacity(self) -> int:
+        if 'max_drones' in self.get_metadata().keys():
+            return self.get_metadata['max_drones']
+        else:
+            return 1
