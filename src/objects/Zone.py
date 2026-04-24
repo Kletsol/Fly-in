@@ -6,8 +6,8 @@ class Zone:
         self.__y_coord = zone['y_coord']
         if 'metadata' in zone.keys():
             self.__metadata = zone['metadata']
-            if 'zone_type' in self.__metadata:
-                self.__zone_type = self.__metadata['zone_type']
+            if 'zone' in self.__metadata:
+                self.__zone_type = self.__metadata['zone']
 
     def get_coords(self):
         return self.__x_coord, self.__y_coord
@@ -58,16 +58,16 @@ class Zone:
             case _:
                 return (255, 255, 255)
 
-    def get_next_zones(self, zones, connections) -> list:
+    def get_next_zones(self, zones, connections, previous_zone) -> list:
         next_zones = []
         for connection in connections:
             if connection.get_linked_zones()[0] == self.name:
                 for zone in zones:
-                    if connection.get_linked_zones()[1] == zone.name:
+                    if connection.get_linked_zones()[1] == zone.name and zone != previous_zone:
                         next_zones.append(zone)
             elif connection.get_linked_zones()[1] == self.name:
                 for zone in zones:
-                    if connection.get_linked_zones()[0] == zone.name:
+                    if connection.get_linked_zones()[0] == zone.name and zone != previous_zone:
                         next_zones.append(zone)
         return next_zones
 

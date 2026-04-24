@@ -22,15 +22,25 @@ class Dijkstra:
         turn_counter = 0
         current_zone = self.start
         previous_zone = self.start
+        paths = {}
         while current_zone != self.end:
             print(f"Current -> {current_zone.name}")
-            next_zones = current_zone.get_next_zones(self.__zones, self.__connections)
-            for zone in next_zones:
-                print(f"Next -> {zone.name}")
-                print(zone.get_cost())
-            print(f"Previous -> {previous_zone.name}")
+
+            # Recuperer les zones voisines
+            next_zones = current_zone.get_next_zones(self.__zones, self.__connections, previous_zone)
+
+            # Trouver laquelle a le cout le plus petit
+            costs = sorted(next_zones, key=lambda x: x.get_cost(), reverse=True)
+            for zone in costs:
+                print(f"{zone.name}", end=' ')
+                    # print(f"Next -> {zone.name}")
+                    # print(cost)
+            print(f"\nPrevious -> {previous_zone.name}")
             previous_zone = current_zone
             current_zone = zone
             print("\n----------------------\n")
         print(turn_counter)
         return
+    
+    def update_paths(self, paths):
+        pass
