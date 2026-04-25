@@ -1,5 +1,4 @@
 import heapq
-from os import path
 
 class PathFinder:
     def __init__(self, start, end, zones, connections, drones):
@@ -27,7 +26,6 @@ class PathFinder:
     #     for zone in self.__zones:
     #         reservation_table.update()
 
-
     def process(self):
         reservation_table = {(self.start, 0): len(self.__drones)}
         for drone in self.__drones:
@@ -46,7 +44,7 @@ class PathFinder:
 
     #         if zone == self.end:
     #             return path
-            
+
     #         if turn >= self.max_time or (zone, turn) in visited:
     #             continue
     #         visited.add((zone, turn))
@@ -62,11 +60,14 @@ class PathFinder:
     #                 heapq.heappush(queue, (arrival_time, next_zone))
 
     def dijkstra(self, reservations) -> tuple:
-        queue = [(0, 0, self.start, [self.start])]
+        queue = [(0, 0, self.start.name, [self.start])]
         visited = set()
 
         while queue:
-            cost, turn, current_zone, path = heapq.heappop(queue)
+            print("\n------------------\n")
+            cost, turn, current_zone_name, path = heapq.heappop(queue)
+            print(type(current_zone_name))
+            current_zone = self.get_zone(current_zone_name)
             print(current_zone.name)
             print("1")
             if current_zone == self.end:
@@ -87,8 +88,9 @@ class PathFinder:
                 if self.is_available_zone(next_zone, arrival_time, reservations):
                     print("6")
                     new_cost = cost + move_cost
+                    print(new_cost)
                     new_path = path + [next_zone]
-                    heapq.heappush(queue, (new_cost, arrival_time, next_zone, new_path))
+                    heapq.heappush(queue, (new_cost, arrival_time, next_zone.name, new_path))
 
             # if self.is_available_zone(current_zone, turn, turn + 1, reservations):
             #     heapq.heappush(queue, (cost + 1, turn + 1, current_zone, path + [current_zone]))
@@ -137,3 +139,8 @@ class PathFinder:
                 if key[1] <= zone.get_capacity():
                     return True
         return False
+
+    def get_zone(self, name):
+        for zone in self.__zones:
+            if zone.name == name:
+                return (zone)
