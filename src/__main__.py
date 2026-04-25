@@ -6,7 +6,7 @@ def main():
     links = []
     drones = []
     try:
-        config = get_parsed_map("maps/easy/02_simple_fork.txt")
+        config = get_parsed_map("maps/hard/01_maze_nightmare.txt")
         print("\n=== DRONES ===\n")
         for drone in config['drones']:
             drones.append(Drone(drone['id'], drone['place']))

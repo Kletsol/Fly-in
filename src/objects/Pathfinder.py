@@ -29,99 +29,37 @@ class PathFinder:
     def process(self):
         reservation_table = {(self.start, 0): len(self.__drones)}
         for drone in self.__drones:
+            print("--------------------")
             # chercher le chemin le plus court
-            path, turn = self.dijkstra(reservation_table)
-            if path:
-                for zone in path:
-                    reservation_table[turn][zone] += 1
-
-    # def dijkstra(self):
-    #     queue = [(0, self.start)]
-    #     visited = set()
-
-    #     while queue:
-    #         turn, zone = heapq.heappop(queue)
-
-    #         if zone == self.end:
-    #             return path
-
-    #         if turn >= self.max_time or (zone, turn) in visited:
-    #             continue
-    #         visited.add((zone, turn))
-
-    #         if self.is_available_zone(zone, turn + 1):
-    #             heapq.heappush(queue, (turn + 1, zone))
-
-    #         for next_zone in zone.get_next_zones():
-    #             travel_time = next_zone.get_cost()
-    #             arrival_time = turn + travel_time
-
-    #             if self.is_available_zone(next_zone, arrival_time):
-    #                 heapq.heappush(queue, (arrival_time, next_zone))
+            path = self.dijkstra(reservation_table)
 
     def dijkstra(self, reservations) -> tuple:
-        queue = [(0, 0, self.start.name, [self.start])]
+        queue = [(0, 0, self.start.name, [self.start.name])]
         visited = set()
 
         while queue:
-            print("\n------------------\n")
             cost, turn, current_zone_name, path = heapq.heappop(queue)
-            print(type(current_zone_name))
             current_zone = self.get_zone(current_zone_name)
-            print(current_zone.name)
-            print("1")
+            print(f"-> {current_zone_name}")
             if current_zone == self.end:
-                print("2")
-                return path, cost
+                print(path)
+                return path
 
             if (current_zone, turn) in visited:
-                print("3")
                 continue
             visited.add((current_zone, turn))
 
-            print("4")
             for next_zone in current_zone.get_next_zones(self.__zones, self.__connections):
-                print(f"Next -> {next_zone.name}")
-                print("5")
+                if (next_zone == current_zone or next_zone in visited):
+                    continue
                 move_cost = next_zone.get_cost()
                 arrival_time = turn + move_cost
                 if self.is_available_zone(next_zone, arrival_time, reservations):
-                    print("6")
                     new_cost = cost + move_cost
-                    print(new_cost)
-                    new_path = path + [next_zone]
+                    new_path = path + [next_zone.name]
                     heapq.heappush(queue, (new_cost, arrival_time, next_zone.name, new_path))
 
-            # if self.is_available_zone(current_zone, turn, turn + 1, reservations):
-            #     heapq.heappush(queue, (cost + 1, turn + 1, current_zone, path + [current_zone]))
-
         return None, None
-
-        # turn_counter = 0
-        # current_zone = self.start
-        # previous_zone = self.start
-        # current_path = []
-        # while current_zone != self.end:
-        #     print(f"Current -> {current_zone.name}")
-
-        #     # Recuperer les zones voisines
-        #     next_zones = current_zone.get_next_zones(self.__zones, self.__connections, previous_zone)
-
-        #     # Trouver laquelle a le cout le plus petit
-        #     costs = sorted(next_zones, key=lambda x: x.get_cost())
-
-        #     # L'ajouter au chemin actuellement traite
-        #     current_path.append(costs[0])
-        #     for zone in current_path:
-        #         print(zone.name)
-
-        #     previous_zone = current_zone
-        #     current_zone = costs[0]
-        #     total = self.get_total_cost(current_path)
-        #     print(total)
-        #     print("\n----------------------\n")
-        # print(turn_counter)
-        # return
 
     @staticmethod
     def get_total_cost(path: list):
