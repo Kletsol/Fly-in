@@ -78,7 +78,7 @@ class Zone:
             if self.__zone_type == 'restricted':
                 return 2.0
             if self.__zone_type == 'priority':
-                return 0.9
+                return 1
             if self.__zone_type == 'blocked':
                 return -1
         except Exception:
@@ -86,6 +86,6 @@ class Zone:
 
     def get_capacity(self) -> int:
         if 'max_drones' in self.get_metadata().keys():
-            return self.get_metadata['max_drones']
+            return self.get_metadata()['max_drones']
         else:
             return 1

@@ -6,7 +6,7 @@ def main():
     links = []
     drones = []
     try:
-        config = get_parsed_map("maps/hard/01_maze_nightmare.txt")
+        config = get_parsed_map("maps/hard/03_ultimate_challenge.txt")
         print("\n=== DRONES ===\n")
         for drone in config['drones']:
             drones.append(Drone(drone['id'], drone['place']))
@@ -32,7 +32,6 @@ def main():
     print("\n=== PATHFINDING ===\n")
     pathfinder = PathFinder(start, end, zones, links, drones)
     pathfinder.initiate_drones()
-    pathfinder.initiate_dict(0)
     pathfinder.process()
     visualizer = Visualizer(zones, links, None)
     visualizer.on_execute()
