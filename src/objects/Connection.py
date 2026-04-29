@@ -12,10 +12,9 @@ class Connection(ABC):
 
     def get_metadata(self):
         return self.__metadata
-    
-    def get_capacity(self):
-        if 'max_link_capacity' in self.get_metadata().keys():
-            return self.get_metadata['max_link_capacity']
-        else:
-            return 1
 
+    def get_capacity(self):
+        if self.__metadata:
+            if 'max_link_capacity' in self.get_metadata():
+                return self.get_metadata()['max_link_capacity']
+        return 1

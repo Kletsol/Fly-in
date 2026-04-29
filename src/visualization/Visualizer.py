@@ -1,14 +1,16 @@
 import pygame
+import time
 
 
 class Visualizer:
-    def __init__(self, zones, connections, drones):
+    def __init__(self, zones, connections, schedule):
         self._running = True
         self._display_surf = None
         self._image_surf = None
+        self._drone_image = None
         self._zones = zones
         self._connections = connections
-        self.drones = drones
+        self.schedule = schedule
         self.size = self.width, self.height = 3840, 2160
         self.camera_offset = [0, 0]
         self.scroll_speed = 20
@@ -19,6 +21,7 @@ class Visualizer:
         self._display_surf = pygame.display.set_mode(self.size,
                                                      pygame.HWSURFACE |
                                                      pygame.DOUBLEBUF)
+        self._drone_image = pygame.transform.scale(pygame.image.load("drone.png").convert_alpha(), (61, 61))
         self.font = pygame.font.SysFont("Arial", 26)
         self._running = True
 
@@ -66,10 +69,23 @@ class Visualizer:
                 end[1] += 30 + self.camera_offset[1]
         pygame.draw.line(self._display_surf, (255, 255, 255), start, end, 2)
 
+    def on_render_drone(self, drone, path):
+        for zone in self._zones:
+            if path[1] == zone.name:
+                coords = zone.get_visual_coords()
+                x_coord = coords[0] + self.camera_offset[0]
+                y_coord = coords[1] + self.camera_offset[1]
+        text_surf = self.font.render(drone, True, (255, 255, 0))
+        x_text = x_coord
+        y_text = y_coord - 32
+        self._display_surf.blit(text_surf, (x_text, y_text))
+        self._display_surf.blit(self._drone_image, (x_coord, y_coord))
+
     def on_cleanup(self):
         pygame.quit()
 
     def on_execute(self):
+        turn = 0
         if self.on_init() is False:
             self._running = False
         image = pygame.transform.scale(
@@ -83,7 +99,14 @@ class Visualizer:
                 self.on_render_connection(connection)
             for zone in self._zones:
                 self.on_render_zone(zone)
+            for drone, path in self.schedule.items():
+                if turn < len(path):
+                    self.on_render_drone(drone, path[turn])
+                else:
+                    self.on_render_drone(drone, path[-1])
+            time.sleep(0.5)
             pygame.display.set_caption("Fly-in")
             pygame.display.flip()
             self.clock.tick(60)
+            turn += 1
         self.on_cleanup()

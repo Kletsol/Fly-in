@@ -4,10 +4,11 @@ class Zone:
         self.name = zone['name']
         self.__x_coord = zone['x_coord']
         self.__y_coord = zone['y_coord']
+        self.zone_type = None
         if 'metadata' in zone.keys():
             self.__metadata = zone['metadata']
             if 'zone' in self.__metadata:
-                self.__zone_type = self.__metadata['zone']
+                self.zone_type = self.__metadata['zone']
 
     def get_coords(self):
         return self.__x_coord, self.__y_coord
@@ -71,18 +72,19 @@ class Zone:
                         next_zones.append(zone)
         return next_zones
 
-    def get_cost(self) -> float:
-        try:
-            if self.__zone_type == 'normal':
-                return 1.0
-            if self.__zone_type == 'restricted':
-                return 2.0
-            if self.__zone_type == 'priority':
-                return 1
-            if self.__zone_type == 'blocked':
-                return -1
-        except Exception:
-            return 1.0
+    def get_cost(self) -> int:
+        if self.zone_type is None:
+            cost = 1
+        else:
+            if self.zone_type == 'normal':
+                cost = 1
+            if self.zone_type == 'restricted':
+                cost = 2
+            if self.zone_type == 'priority':
+                cost = 1
+            if self.zone_type == 'blocked':
+                cost = -1
+        return cost
 
     def get_capacity(self) -> int:
         if 'max_drones' in self.get_metadata().keys():
