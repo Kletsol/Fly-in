@@ -39,9 +39,8 @@ def main():
         visualizer.on_execute()
 
         with open("logs.txt", 'w') as file:
-            print(visualizer.logs)
             for turn, data in visualizer.logs:
-                file.write(f"Turn {turn}: {data.split(':')[1]}\n\n")
+                file.write(f"Turn {turn}:{data.split(':')[1]}\n\n")
 
     except PermissionError:
         print("\033[0;31m[ERROR]: permission denied for input file\033[0;0m")
