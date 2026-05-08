@@ -1,0 +1,12 @@
+Turn 1:  D1-bottleneck D2-bottleneck
+
+Turn 2:  D1-wide_area D3-bottleneck
+
+Turn 3:  D1-goal D2-wide_area D4-bottleneck
+
+Turn 4:  D2-goal D3-wide_area
+
+Turn 5:  D3-goal D4-wide_area
+
+Turn 6:  D4-goal
+

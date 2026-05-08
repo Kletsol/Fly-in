@@ -1,4 +1,13 @@
-import pygame
+import os
+os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = 'hide'
+
+
+def import_pygame():
+    global pygame
+    import pygame
+
+
+import_pygame()
 
 
 class Visualizer:
@@ -18,6 +27,7 @@ class Visualizer:
         self.progress = 0
         self.color_loop = 0
         self.render_capacity = False
+        self.logs = []
 
     def on_init(self):
         pygame.init()
@@ -44,6 +54,8 @@ class Visualizer:
                     self.render_capacity = False
                 else:
                     self.render_capacity = True
+            if event.key == pygame.K_ESCAPE:
+                self._running = False
 
         if event.type == pygame.MOUSEBUTTONDOWN:
             if event.button == 4 and self.camera_offset[1] < 0:
@@ -161,11 +173,31 @@ class Visualizer:
             text_surf = self.font.render(summary, True, color)
             self._display_surf.blit(text_surf, (x_text, y_text))
 
+    # def get_steps(self, turn, drone, path):
+    #     step_summary = ''
+    #     for step in path:
+    #         if step[0] == turn and step[1] != 'start':
+    #             step_summary += f" {drone}-{step[1]}"
+    #     return step_summary
+
     def get_steps(self, turn, drone, path):
         step_summary = ''
-        for step in path:
-            if step[0] == turn and step[1] != 'start':
-                step_summary += f" {drone}-{step[1]}"
+
+        for i in range(1, len(path)):
+            current_turn, current_zone = path[i]
+            previous_zone = path[i - 1][1]
+
+            # Afficher uniquement si :
+            # - on est au bon tour
+            # - ce n'est pas la zone start
+            # - le drone a réellement changé de zone
+            if (
+                current_turn == turn
+                and current_zone != 'start'
+                and current_zone != previous_zone
+            ):
+                step_summary += f" {drone}-{current_zone}"
+
         return step_summary
 
     def on_render_steps(self, turn_steps):
@@ -217,14 +249,16 @@ class Visualizer:
             turn_steps = 'Current turn :'
             if self.render_capacity is True:
                 self.on_render_occupancy(int(self.global_time))
+
             # Drones animation management
             for drone, path in self.schedule.items():
-                steps = self.get_steps(int(self.global_time) + 1, drone, path)
                 final_turn = int(
                         self.schedule[list(self.schedule.keys())[-1]][-1][0])
                 if int(self.global_time) >= final_turn:
                     stop = True
-                turn_steps += steps
+                turn_steps += self.get_steps(int(self.global_time) + 1, drone,
+                                             path)
+
                 for i in range(len(path) - 1):
                     t1, z1 = path[i]
                     t2, z2 = path[i + 1] if '-' not in path[i + 1][1] else\
@@ -233,14 +267,16 @@ class Visualizer:
                     if t1 <= self.global_time <= t2:
                         duration = t2 - t1
                         local_progress = (self.global_time - t1) / duration
-
                         zone = next(zone for zone in self._zones if
                                     zone.name == z1)
                         next_zone = next(zone for zone in self._zones if
                                          zone.name == z2)
-
                         self.on_render_drone(zone, next_zone, local_progress)
                         break
+
+            if [int(self.global_time) + 1, turn_steps] not in self.logs and \
+                    int(self.global_time) < final_turn:
+                self.logs.append([int(self.global_time) + 1, turn_steps])
             if not stop:
                 self.on_render_steps(turn_steps)
             self.global_time += self.animation_speed
@@ -250,7 +286,6 @@ class Visualizer:
             if self.progress >= 1.0:
                 self.progress = 0
             turn += 1
-
             pygame.display.flip()
             self.clock.tick(60)
         self.on_cleanup()

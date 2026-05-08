@@ -16,7 +16,6 @@ class PathFinder:
         final_schedule = {}
 
         for drone in self.__drones:
-            drone_name = drone.get_id()
             path, arrival_time = self.dijkstra_space_time(global_state)
             if path:
                 self.update_states(path, global_state)
@@ -24,9 +23,6 @@ class PathFinder:
             else:
                 raise Exception(f"\033[0;31m[ERROR]: Drone {drone.get_id()}"
                                 " could not find a path\033[0;0m")
-        print(arrival_time)
-        print(drone_name)
-        # print(global_state)
         return final_schedule
 
     def dijkstra_space_time(self, global_state):
