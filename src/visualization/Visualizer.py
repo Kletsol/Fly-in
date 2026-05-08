@@ -192,11 +192,12 @@ class Visualizer:
         self.color_loop = 0
         self.global_time = 0
         stop = False
+        final_turn = 0
         if self.on_init() is False:
             self._running = False
 
         image = pygame.transform.scale(
-            pygame.image.load("image_test.jpg").convert(), self.size)
+            pygame.image.load("background.jpg").convert(), self.size)
         while self._running:
             for event in pygame.event.get():
                 self.on_event(event)
@@ -206,6 +207,8 @@ class Visualizer:
             self._display_surf.blit(image, (0, 0))
             if not stop:
                 self.on_render_turn(int(self.global_time))
+            else:
+                self.on_render_turn(final_turn)
             for connection in self._connections:
                 self.on_render_connection(connection)
             for zone in self._zones:
@@ -217,8 +220,9 @@ class Visualizer:
             # Drones animation management
             for drone, path in self.schedule.items():
                 steps = self.get_steps(int(self.global_time) + 1, drone, path)
-                if int(self.global_time) > int(
-                        self.schedule[list(self.schedule.keys())[-1]][-1][0]):
+                final_turn = int(
+                        self.schedule[list(self.schedule.keys())[-1]][-1][0])
+                if int(self.global_time) >= final_turn:
                     stop = True
                 turn_steps += steps
                 for i in range(len(path) - 1):

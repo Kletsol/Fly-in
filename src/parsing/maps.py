@@ -21,6 +21,9 @@ def get_parsed_map(path: str) -> dict[str, Any]:
     try:
         with open(path, "r") as file:
             raw_config = file.readlines()
+    except Exception as e:
+        raise ValueError(f"[ERROR]: {e}")
+    try:
         start_count = 0
         end_count = 0
         line_count = 1
@@ -105,6 +108,10 @@ def get_parsed_map(path: str) -> dict[str, Any]:
 
     except FileNotFoundError:
         raise FileNotFoundError(f"[ERROR]: map file not found in {path}")
+    if start_count < 1:
+        raise MapError("[ERROR]: missing start_hub zone in file")
+    if end_count < 1:
+        raise MapError("[ERROR]: missing end_hub zone in file")
     config = {'drones': drones,
               'nodes': nodes,
               'connections': connections}
@@ -121,7 +128,7 @@ def get_drones(line: str) -> list:
         nb_drones = int(data[1])
     except ValueError:
         raise MapError("[ERROR]: Number of drones must be an int")
-    if nb_drones < 0:
+    if nb_drones <= 0:
         raise MapError("[ERROR]: Number of drones must be positive")
 
     # ID and localisation application
@@ -147,7 +154,8 @@ def get_zone(prev_zones: list, line: list[str],
     # Name availability
     for zone in prev_zones:
         if '-' in line[1]:
-            raise ZoneError(f"[ERROR]: invalid character '-' in zone name '{line[1]}'")
+            raise ZoneError("[ERROR]: invalid character '-' in zone name "
+                            f"'{line[1]}'")
         if line[1] == zone['name']:
             raise ZoneError(f"[ERROR]: name '{line[1]}' already taken")
 

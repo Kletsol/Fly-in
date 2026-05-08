@@ -9,11 +9,7 @@ class PathFinder:
         self.__connections = connections
         self.__drones = drones
         self.output = {}
-        self.max_time = 10000
-
-    def initiate_drones(self):
-        for drone in self.__drones:
-            drone.set_position(self.start.name)
+        self.max_time = 1000
 
     def process(self):
         global_state = {'nodes': {}, 'edges': {}}
@@ -23,12 +19,11 @@ class PathFinder:
             drone_name = drone.get_id()
             path, arrival_time = self.dijkstra_space_time(global_state)
             if path:
-                print(path)
                 self.update_states(path, global_state)
                 final_schedule[drone.get_id()] = path
             else:
-                print(f"\033[0;31m[ERROR]: Drone {drone.get_id()} could not "
-                      "find a path\033[0;0m")
+                raise Exception(f"\033[0;31m[ERROR]: Drone {drone.get_id()}"
+                                " could not find a path\033[0;0m")
         print(arrival_time)
         print(drone_name)
         # print(global_state)
