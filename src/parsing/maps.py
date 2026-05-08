@@ -136,11 +136,18 @@ def get_drones(line: str) -> list:
 
 def get_zone(prev_zones: list, line: list[str],
              metadata: Optional[list[str]] = None) -> dict:
-    if len(line) != 4:
-        raise ZoneError("[ERROR]: Invalid count of arguments in line")
+    if len(line) > 4:
+        raise ZoneError("[ERROR]: Too many arguments in line. Please make "
+                        "sure each argument is separated by a space, and "
+                        "no space is used in an argument")
+    elif len(line) < 4:
+        raise ZoneError("[ERROR]: Not enough arguments in line. Please make "
+                        "sure each argument is separated by a space")
 
     # Name availability
     for zone in prev_zones:
+        if '-' in line[1]:
+            raise ZoneError(f"[ERROR]: invalid character '-' in zone name '{line[1]}'")
         if line[1] == zone['name']:
             raise ZoneError(f"[ERROR]: name '{line[1]}' already taken")
 
@@ -183,6 +190,7 @@ def get_connection(prev_zones: list, prev_connections: list, line: list[str],
 
 def verify_metadata(metadata: list[str], area_type: str) -> dict:
     output = {}
+    current_data_types = []
     for data in metadata:
         data = data.split('=')
         if len(data) < 2:
@@ -195,6 +203,14 @@ def verify_metadata(metadata: list[str], area_type: str) -> dict:
                 if data[1] not in ['normal', 'blocked',
                                    'restricted', 'priority']:
                     raise MapError(f"[ERROR]: invalid zone type '{data[1]}'")
+            if data[0] == 'color':
+                if not data[1].isalpha():
+                    raise ZoneError(f"[ERROR]: invalid color '{data[1]}' "
+                                    "- colors must be single-word strings")
+            if data[0] not in current_data_types:
+                current_data_types.append(data[0])
+            else:
+                raise MapError(f"[ERROR]: duplicated metadata '{data[0]}'")
         if area_type == 'connection':
             if data[0] not in ['max_link_capacity']:
                 raise MapError(f"[ERROR]: invalid metadata block '{data[0]}'")

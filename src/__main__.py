@@ -6,33 +6,24 @@ def main():
     links = []
     drones = []
     try:
-        config = get_parsed_map("maps/easy/01_linear_path.txt")
+        config = get_parsed_map("maps/challenger/01_the_impossible_dream.txt")
         print("\n=== DRONES ===\n")
         for drone in config['drones']:
             drones.append(Drone(drone['id'], drone['place']))
-            # print(drones[-1].get_id())
-            # print(drones[-1].get_position())
         print("\n=== ZONES ===\n")
         for zone in config['nodes']:
             zones.append(Zone(zone))
-            # print(zones[-1].get_coords())
-            # print(zones[-1].get_rgb())
-            # print(zones[-1].get_metadata())
         print("\n=== CONNECTIONS ===\n")
         for connection in config['connections']:
             links.append(Connection(connection))
-            # print(connection)
         for zone in zones:
             if zone.type == 'start_hub':
                 start = zone
             if zone.type == 'end_hub':
                 end = zone
-        # print("\n=== PATHFINDING ===\n")
         pathfinder = PathFinder(start, end, zones, links, drones)
         pathfinder.initiate_drones()
         schedule = pathfinder.process()
-        # for data in schedule.items():
-        #     print(data)
         visualizer = Visualizer(zones, links, schedule)
         visualizer.on_execute()
     except Exception as e:
