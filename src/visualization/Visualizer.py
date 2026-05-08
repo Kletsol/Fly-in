@@ -1,5 +1,4 @@
 import pygame
-import time
 
 
 class Visualizer:
@@ -15,6 +14,10 @@ class Visualizer:
         self.camera_offset = [0, 0]
         self.scroll_speed = 20
         self.clock = pygame.time.Clock()
+        self.animation_speed = 0.02
+        self.progress = 0
+        self.color_loop = 0
+        self.render_capacity = False
 
     def on_init(self):
         pygame.init()
@@ -22,12 +25,25 @@ class Visualizer:
                                                      pygame.HWSURFACE |
                                                      pygame.DOUBLEBUF)
         self._drone_image = pygame.transform.scale(pygame.image.load("drone.png").convert_alpha(), (61, 61))
-        self.font = pygame.font.SysFont("Arial", 26)
+        self.font = pygame.font.SysFont("Arial", 26, True)
         self._running = True
 
     def on_event(self, event):
         if event.type == pygame.QUIT:
             self._running = False
+
+        if event.type == pygame.KEYUP:
+            if event.key == pygame.K_p:
+                if self.animation_speed > 0:
+                    self.animation_speed = 0
+                else:
+                    self.animation_speed = 0.02
+            if event.key == pygame.K_c:
+                if self.render_capacity:
+                    self.render_capacity = False
+                else:
+                    self.render_capacity = True
+
         if event.type == pygame.MOUSEBUTTONDOWN:
             if event.button == 4 and self.camera_offset[1] < 0:
                 self.camera_offset[1] += self.scroll_speed
@@ -36,6 +52,10 @@ class Visualizer:
 
     def on_loop(self):
         keys = pygame.key.get_pressed()
+        if keys[pygame.K_f] and self.animation_speed < 0.2:
+            self.animation_speed += 0.001
+        if keys[pygame.K_s] and self.animation_speed > 0:
+            self.animation_speed -= 0.001
         if keys[pygame.K_LEFT] and self.camera_offset[0] < 0:
             self.camera_offset[0] += self.scroll_speed
         if keys[pygame.K_RIGHT] and self.camera_offset[0] > -3800:
@@ -50,11 +70,19 @@ class Visualizer:
         color = zone.get_rgb()
         x_coord = coords[0] + self.camera_offset[0]
         y_coord = coords[1] + self.camera_offset[1]
-        text_surf = self.font.render(zone.name, True, color)
         x_text = x_coord
         y_text = y_coord - 32
+        if type(color) is list:
+            new_color = color[int((self.color_loop * 10))]
+            text_surf = self.font.render(zone.name, True, new_color)
+            capacity_surf = self.font.render(str(zone.get_capacity()), True, new_color)
+            pygame.draw.rect(self._display_surf, new_color, (x_coord, y_coord, 61, 61))
+        else:
+            text_surf = self.font.render(zone.name, True, color)
+            capacity_surf = self.font.render(str(zone.get_capacity()), True, color)
+            pygame.draw.rect(self._display_surf, color, (x_coord, y_coord, 61, 61))
         self._display_surf.blit(text_surf, (x_text, y_text))
-        pygame.draw.rect(self._display_surf, color, (x_coord, y_coord, 61, 61))
+        self._display_surf.blit(capacity_surf, (x_text, y_text - 46))
 
     def on_render_connection(self, connection):
         zones = connection.get_linked_zones()
@@ -69,44 +97,144 @@ class Visualizer:
                 end[1] += 30 + self.camera_offset[1]
         pygame.draw.line(self._display_surf, (255, 255, 255), start, end, 2)
 
-    def on_render_drone(self, drone, path):
+    def on_render_drone(self, drone_name, current_zone, next_zone, progress, cost):
+        start_pos = current_zone.get_visual_coords()
+        end_pos = next_zone.get_visual_coords()
+
+        if start_pos == end_pos:
+            draw_x = end_pos[0] + self.camera_offset[0]
+            draw_y = end_pos[1] + self.camera_offset[1]
+
+        elif start_pos and end_pos:
+            # Linear interpolation between zone and next zone positions
+            interp_x = start_pos[0] + (end_pos[0] - start_pos[0]) * progress
+            interp_y = start_pos[1] + (end_pos[1] - start_pos[1]) * progress
+
+            # Camera offset application
+            draw_x = interp_x + self.camera_offset[0]
+            draw_y = interp_y + self.camera_offset[1]
+
+        # Display
+        self._display_surf.blit(self._drone_image, (draw_x, draw_y))
+
+    def on_render_turn(self, turn):
+        text_surf = self.font.render(f"Turn counter: {str(turn)}", True, (255, 255, 0))
+        self._display_surf.blit(text_surf, (8, 8))
+
+    def on_render_occupancy(self, current_time):
+        occupancy_counts = {zone.name: 0 for zone in self._zones}
+
+        # 2. Broswe schedule to find where each drone is
+        for drone, path in self.schedule.items():
+            for i in range(len(path) - 1):
+                t1, z1 = path[i]
+                t2, z2 = path[i+1]
+
+                # Restricted connections management
+                if t1 <= current_time < t2:
+                    if z1 in occupancy_counts:
+                        occupancy_counts[z1] += 1
+                    break
+            else:
+                # If the current time reaches the last turn, all drones are on goal
+                if current_time >= path[-1][0]:
+                    final_zone = path[-1][1]
+                    if final_zone in occupancy_counts:
+                        occupancy_counts[final_zone] += 1
+
         for zone in self._zones:
-            if path[1] == zone.name:
-                coords = zone.get_visual_coords()
-                x_coord = coords[0] + self.camera_offset[0]
-                y_coord = coords[1] + self.camera_offset[1]
-        text_surf = self.font.render(drone, True, (255, 255, 0))
-        x_text = x_coord
-        y_text = y_coord - 32
-        self._display_surf.blit(text_surf, (x_text, y_text))
-        self._display_surf.blit(self._drone_image, (x_coord, y_coord))
+            count = occupancy_counts[zone.name]
+            coords = zone.get_visual_coords()
+            x_text = coords[0] + self.camera_offset[0]
+            y_text = coords[1] + self.camera_offset[1] + 65
+
+            summary = f"{count} / {zone.get_capacity()}"
+            color = (255, 255, 255) if count <= zone.get_capacity() else (255, 0, 0)
+
+            text_surf = self.font.render(summary, True, color)
+            self._display_surf.blit(text_surf, (x_text, y_text))
+
+    def get_steps(self, turn, drone, path):
+        step_summary = ''
+        for step in path:
+            if step[0] == turn and step[1] != 'start':
+                step_summary += f" {drone}-{step[1]}"
+        return step_summary
+
+    def on_render_steps(self, turn_steps):
+        text_surf = self.font.render(turn_steps, True, (255, 255, 255))
+        self._display_surf.blit(text_surf, (100, 100))
 
     def on_cleanup(self):
         pygame.quit()
 
+    def get_zones(self, path, turn):
+        for zone in self._zones:
+            if zone.name == path[turn][1]:
+                current_zone = zone
+            if turn >= 0:
+                if zone.name == path[turn + 1][1]:
+                    next_zone = zone
+            elif zone.name == path[turn][1]:
+                next_zone = zone
+        return current_zone, next_zone
+
     def on_execute(self):
         turn = 0
+        self.progress = 0
+        self.color_loop = 0
+        self.global_time = 0
+        stop = False
         if self.on_init() is False:
             self._running = False
-        image = pygame.transform.scale(
-            pygame.image.load("image_test.jpg").convert(), self.size)
-        while (self._running):
+
+        image = pygame.transform.scale(pygame.image.load("image_test.jpg").convert(), self.size)
+        while self._running:
             for event in pygame.event.get():
                 self.on_event(event)
             self.on_loop()
+
+            # Turn counter, connections and zones rendering
             self._display_surf.blit(image, (0, 0))
+            if not stop:
+                self.on_render_turn(int(self.global_time))
             for connection in self._connections:
                 self.on_render_connection(connection)
             for zone in self._zones:
                 self.on_render_zone(zone)
+
+            turn_steps = 'Current turn :'
+            if self.render_capacity is True:
+                self.on_render_occupancy(int(self.global_time))
+            # Drones animation management
             for drone, path in self.schedule.items():
-                if turn < len(path):
-                    self.on_render_drone(drone, path[turn])
-                else:
-                    self.on_render_drone(drone, path[-1])
-            time.sleep(0.5)
-            pygame.display.set_caption("Fly-in")
+                steps = self.get_steps(int(self.global_time) + 1, drone, path)
+                if int(self.global_time) > int(self.schedule[list(self.schedule.keys())[-1]][-1][0]):
+                    stop = True
+                turn_steps += steps
+                for i in range(len(path) - 1):
+                    t1, z1 = path[i]
+                    t2, z2 = path[i + 1] if '-' not in path[i + 1][1] else path[i + 2]
+
+                    if t1 <= self.global_time <= t2:
+                        duration = t2 - t1
+                        local_progress = (self.global_time - t1) / duration
+
+                        zone = next(z for z in self._zones if z.name == z1)
+                        next_zone = next(z for z in self._zones if z.name == z2)
+
+                        self.on_render_drone(drone, zone, next_zone, local_progress, duration)
+                        break
+            if not stop:
+                self.on_render_steps(turn_steps)
+            self.global_time += self.animation_speed
+            self.color_loop += 0.1
+            if self.color_loop > 0.6:
+                self.color_loop = 0
+            if self.progress >= 1.0:
+                self.progress = 0
+            turn += 1
+
             pygame.display.flip()
             self.clock.tick(60)
-            turn += 1
         self.on_cleanup()

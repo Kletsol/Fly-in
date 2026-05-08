@@ -25,7 +25,7 @@ class Zone:
         else:
             return 'white'
 
-    def get_rgb(self) -> tuple:
+    def get_rgb(self) -> tuple | list[tuple]:
         match self.get_color():
 
             case 'white':
@@ -38,10 +38,14 @@ class Zone:
                 return (0, 204, 0)
             case 'red':
                 return (204, 0, 0)
+            case 'darkred':
+                return (153, 0, 0)
             case 'orange':
                 return (255, 128, 0)
             case 'purple':
                 return (153, 51, 255)
+            case 'violet':
+                return (102, 0, 204)
             case 'pink':
                 return (255, 0, 255)
             case 'yellow':
@@ -52,10 +56,16 @@ class Zone:
                 return (160, 160, 160)
             case 'brown':
                 return (102, 51, 0)
+            case 'maroon':
+                return (139, 69, 19)
             case 'black':
                 return (64, 64, 64)
             case 'teal':
                 return (0, 153, 153)
+            case 'crimson':
+                return (255, 0, 0)
+            case 'rainbow':
+                return [(204, 0, 0), (255, 128, 0), (255, 255, 51), (0, 204, 0), (0, 255, 255), (51, 153, 255), (153, 51, 255)]
             case _:
                 return (255, 255, 255)
 
@@ -83,7 +93,7 @@ class Zone:
             if self.zone_type == 'priority':
                 cost = 1
             if self.zone_type == 'blocked':
-                cost = -1
+                cost = float('inf')
         return cost
 
     def get_capacity(self) -> int:
