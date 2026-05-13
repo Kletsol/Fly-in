@@ -31,11 +31,11 @@ class PathFinder:
     def dijkstra_space_time(self, global_state: dict[str, dict[
             tuple[str, float], int]]
     ) -> tuple[list[list[Any]], float] | tuple[None, None]:
-        queue = [(0.0, 0.0, self.start.name, [[0, self.start.name]])]
-        visited: dict[tuple[Any, float], float] = {}
+        queue = [(0.0, 0, 0.0, self.start.name, [[0, self.start.name]])]
+        visited: dict[tuple[Any, float], tuple[float, int]] = {}
 
         while queue:
-            cost, turn, curr_zone_name, path = heapq.heappop(queue)
+            cost, penalty, turn, curr_zone_name, path = heapq.heappop(queue)
 
             if turn > self.max_time:
                 continue
@@ -45,9 +45,9 @@ class PathFinder:
 
             key = (curr_zone_name, turn)
             if key in visited:
-                if visited[key] <= cost:
+                if visited[key] <= (cost, penalty):
                     continue
-            visited[key] = cost
+            visited[key] = (cost, penalty)
 
             current_zone: Zone = self.get_zone(curr_zone_name)
             # --- EXPLORATION DES VOISINS (Mouvements + Attente) ---
@@ -58,8 +58,10 @@ class PathFinder:
             wait_turn = turn + 1
             if self.is_available_zone(current_zone, wait_turn, global_state):
                 new_cost = cost + 1
-                heapq.heappush(queue, (new_cost, wait_turn, curr_zone_name,
-                                       path + [[wait_turn, curr_zone_name]]))
+                new_penalty = penalty + current_zone.get_priority_penalty()
+                heapq.heappush(queue, (new_cost, new_penalty, wait_turn,
+                                       curr_zone_name, path +
+                                       [[wait_turn, curr_zone_name]]))
 
             for next_zone in next_zones:
                 # Arrival_time calculation
@@ -77,9 +79,11 @@ class PathFinder:
                     continue
 
                 new_cost = cost + travel_time
+                new_penalty = penalty + next_zone.get_priority_penalty()
 
                 heapq.heappush(queue,
-                               (new_cost, arrival_time, next_zone.name, path +
+                               (new_cost, new_penalty, arrival_time,
+                                next_zone.name, path +
                                 ([[turn + 1, self.get_connection(
                                     curr_zone_name, next_zone.name, True)],
                                     [arrival_time, next_zone.name]] if
