@@ -28,8 +28,9 @@ def get_parsed_map(path: str) -> dict[str, Any]:
         end_count = 0
         line_count = 1
         comm_count = 0
-        nodes = []
-        connections = []
+        drones_count = 0
+        nodes: list[dict[Any, Any]] = []
+        connections: list[dict[Any, Any]] = []
         for line in raw_config:
 
             # Ignore comments and empty lines
@@ -37,11 +38,23 @@ def get_parsed_map(path: str) -> dict[str, Any]:
                 comm_count += 1
                 continue
 
+            elif not line.startswith(('nb_drones: ',
+                                      'start_hub: ',
+                                      'end_hub: ',
+                                      'hub: ',
+                                      'connection:')):
+                raise ConfigError(f"\033[0;31mLine {line_count + comm_count}"
+                                  " - [ERROR]: Invalid data "
+                                  f"'{line.rstrip("\n")}'\033[0;0m")
+
             elif '#' in line:
                 line = line.split('#')[0].rstrip(' ')
 
             # Nb_drones
             elif line.startswith('nb_drones'):
+                drones_count += 1
+                if drones_count > 1:
+                    raise ConfigError("[ERROR]: duplicated nb_drones in file")
                 try:
                     drones = get_drones(line)
                 except Exception as e:
@@ -49,8 +62,11 @@ def get_parsed_map(path: str) -> dict[str, Any]:
                                     f" - {e}\033[0;0m")
 
                 if line_count > 1:
-                    raise ConfigError("[ERROR]: nb_drones has to be"
+                    raise ConfigError("[ERROR]: nb_drones has to be "
                                       "on first line")
+
+            elif drones_count < 1:
+                raise ConfigError("[ERROR]: no nb_drones found in file")
 
             # Start
             elif line.startswith(('start_hub', 'end_hub', 'hub')):
@@ -87,10 +103,10 @@ def get_parsed_map(path: str) -> dict[str, Any]:
                         splitted_line = line.split("[")
                         caracs = splitted_line[0].strip(' ').split(' ')
                         metadata = splitted_line[1].rstrip(']\n').split(' ')
-                        metadata = verify_metadata(metadata, "connection")
+                        new_metadata = verify_metadata(metadata, "connection")
                         connections.append(
                             get_connection(nodes, connections,
-                                           caracs, metadata))
+                                           caracs, new_metadata))
                     else:
                         connections.append(
                             get_connection(nodes, connections,
@@ -118,7 +134,7 @@ def get_parsed_map(path: str) -> dict[str, Any]:
     return config
 
 
-def get_drones(line: str) -> list:
+def get_drones(line: str) -> list[dict[str, str]]:
     data = line.split(' ')
     if len(data) < 2:
         raise MapError("[ERROR]: No number of drones found")
@@ -135,14 +151,14 @@ def get_drones(line: str) -> list:
     drones = []
     for i in range(1, nb_drones + 1):
         id = 'D' + str(i)
-        drones.append({'id': id,
-                       'place': None})
+        drones.append({'id': id})
 
     return drones
 
 
-def get_zone(prev_zones: list, line: list[str],
-             metadata: Optional[list[str]] = None) -> dict:
+def get_zone(prev_zones: list[Any], line: list[str],
+             metadata: Optional[dict[Any, Any]] = None) -> \
+                dict[str, Any]:
     if len(line) > 4:
         raise ZoneError("[ERROR]: Too many arguments in line. Please make "
                         "sure each argument is separated by a space, and "
@@ -173,8 +189,11 @@ def get_zone(prev_zones: list, line: list[str],
             'metadata': metadata}
 
 
-def get_connection(prev_zones: list, prev_connections: list, line: list[str],
-                   metadata: Optional[list[str]] = None) -> dict:
+def get_connection(prev_zones: list[Any],
+                   prev_connections: list[Any],
+                   line: list[str],
+                   metadata: Optional[dict[Any, Any]] = None) -> \
+                    dict[str, Any]:
 
     # Duplication check
     linked_zones = line[1].rstrip('\n').split('-')
@@ -196,11 +215,11 @@ def get_connection(prev_zones: list, prev_connections: list, line: list[str],
             'metadata': metadata}
 
 
-def verify_metadata(metadata: list[str], area_type: str) -> dict:
-    output = {}
+def verify_metadata(metadata: list[str], area_type: str) -> dict[str, Any]:
+    output: dict[str, str | int] = {}
     current_data_types = []
-    for data in metadata:
-        data = data.split('=')
+    for raw_data in metadata:
+        data = raw_data.split('=')
         if len(data) < 2:
             raise ConfigError(f"[ERROR]: invalid metadata block {data}")
         output.update({data[0]: data[1]})
@@ -225,7 +244,7 @@ def verify_metadata(metadata: list[str], area_type: str) -> dict:
         if data[0] == 'max_drones' or data[0] == 'max_link_capacity':
             try:
                 value = int(data[1])
-                if value < 0:
+                if value < 1:
                     raise ConfigError("[ERROR]: capacity value "
                                       "must be positive int")
                 output.update({data[0]: value})

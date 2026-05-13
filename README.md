@@ -1,197 +1,182 @@
+*This project has been created as part of the 42 curriculum by lbonnet*
 
+# Fly-in 🛩️
 
-regle le graph impossiblement accessible
+<span style="color:turquoise">
 
-creer un dict contenant pour chaque tour, chaque drone et sa position :
-    {
-    Tour_1: {D1: position, D2: position, D3: position, ...}
-    Tour_2: {D1: position, D2: position, D3: position, ...}
-    Tour_2: {D1: position, D2: position, D3: position, ...}
-    }
-update le dictionnaire a chaque tour
+## 📝 Description
+</span>
 
-Tour 1: n(next_zone_capacity, next_connection_capacity) drones partent du start
-    dict.update(positions)
+The main objective of this project is to move a given number of drones from a starting area to  
+a goal. It seems easy at first glance, but there is a lot of constraints to take into accounts...
 
-reutiliser le dictionnaire pour visualisation
+Between start and end, the drones may go through different zones and connections with different  
+behaviors. Some zones are blocked, which means no drone can access it, some others are restricted  
+or have priority, so drones respectively takes two turns to get there or should prioritize access  
+to this area over another. And of course, all drones must reach the end in a minimal number of turns !
 
+Given all this information, the main challenge of the project is to create an algorithm capable  
+of managing the routes of all the drones, respecting the capacity of the zones over the course of  
+the flights and avoiding collisions. All this from a "simple" text file...
 
+<span style="color:turquoise">
 
+## 🖥️ Instructions
+</span>
 
+This project has a Makefile, allowing you to use different rules serving different purposes:
 
-C'est un défi passionnant ! Votre intuition pour Dijkstra est un bon point de départ, mais le problème que vous décrivez relève davantage du **MAPF (Multi-Agent Pathfinding)**.
+-> **make install:**
+    install the project with all its needed dependencies using uv
 
-Le défi majeur ici est la **dimension temporelle**. Dans un Dijkstra classique, vous cherchez le chemin le plus court dans l'espace ($x, y$). Ici, vous devez chercher le chemin le plus court dans l'espace-temps ($x, y, t$), car la capacité d'une zone dépend de qui s'y trouve à l'instant $t$.
+-> **make debug:**
+    run the main script in debug mode using Python’s built-in debugger
 
-Voici comment structurer votre approche en utilisant le **Prioritized Planning**.
+-> **make clean:**
+    remove temporary files or caches to keep the project environment clean
 
----
+-> **make lint:**
+    execute flake8 and mypy with mandatory flags
 
-## 1. Le Concept : Graphe d'Espace-Temps
-Puisque les drones peuvent attendre ou être bloqués par d'autres, vous ne pouvez pas simplement travailler sur les zones physiques. Vous devez imaginer que chaque zone existe à chaque "tour".
+-> **make lint-strict:**
+    execute flake8 and mypy -- strict
 
-* **Nœud :** $(ZoneID, Temps)$
-* **Arête :** Un drone peut passer de $(Zone_A, t)$ à $(Zone_B, t+1)$ si une connexion existe.
-* **Attente :** Un drone peut passer de $(Zone_A, t)$ à $(Zone_A, t+1)$ (rester sur place).
+-> **make run:**
+    execute the main script of the project
 
----
+    ⚠️ To run the program, execute 'make run path-to-input-file' from the  
+    root directory.
 
-## 2. Organisation de l'Algorithme
+    The input file follows strict rules. To avoid parsing errors, you may  
+    respect the constraints detailed in the next section.
 
-### Étape 1 : Définir l'ordre de priorité
-Donnez un ordre de passage à vos drones (par exemple : Drone 1, puis Drone 2, etc.). Le premier drone planifie son trajet sans contrainte, le second doit éviter les positions occupées par le premier.
+<span style="color:lightblue">
 
-### Étape 2 : Le planificateur individuel (Dijkstra ou A*)
-Pour chaque drone, cherchez le chemin le plus court du départ à l'arrivée en respectant les contraintes laissées par les drones précédents.
+### ⤵️ Input
+</span>
 
-**La fonction de coût et les voisins :**
-* **Zone normale :** Coût de 1 tour.
-* **Zone restreinte :** Coût de 2 tours (le drone "occupe" la zone pendant $t+1$ et $t+2$).
-* **Attente :** Coût de 1 tour.
+The input file corresponds to an entire map in the form of a .txt file. It may contain zones,  
+connections between them, comments and the number of drones to process, all of this following  
+a well-defined structure:
 
-### Étape 3 : Réservation des ressources (Table de Réservation)
-C'est la pièce maîtresse. Vous devez maintenir une structure de données qui stocke l'occupation :
-* `reservation_zones[temps][zone_id]` : Nombre de drones actuellement dans cette zone.
-* `reservation_liens[temps][zone_A][zone_B]` : Nombre de drones sur cette connexion.
+Each line is treated independently, comments must start with '#' and are ignored.  
+The first line of the file must define the number of drones using 'nb_drones: positive int'.
 
----
+More details on zones and connections below :
 
-## 3. Logique de l'algorithme (Pseudocode)
+#### Zones attributes
 
-```python
-# Ordre de priorité des drones
-drones = [D1, D2, D3]
-reservation_table = {} # {temps: {zone_id: occupation}}
+A zone has the following attributes:
+- **Type** (start_hub, hub, end_hub)
+- **Name** (a string, dashes and spaces forbidden)
+- **Coordinates** x y (two integers separated by a space)
+- **Optional metadata**, between brackets, that may contain:
+    - color as a single word (default set to white)
+    - zone being either normal, blocked, restricted or priority (default set to normal)
+    - max_drones as a positive integer
 
-for drone in drones:
-    # On cherche le chemin avec A* ou Dijkstra dans le graphe d'espace-temps
-    path = search_path(drone.start, drone.end, reservation_table)
-    
-    # Une fois le chemin trouvé, on "réserve" les places pour les drones suivants
-    for t, zone in path:
-        reservation_table[t][zone] += 1
-```
+    Expected format: *type: name x y [metadata1=string, ...]*  
+    Any difference in the format will raise an error during parsing.
 
+#### Connections attributes
 
+A connection has the following attributes:
+- **Always** starts with connection
+- **Shows** which zones it is connecting
+- **Optional metadata**, between brackets, that may contain:
+    - max_link_capacity as a positive integer
 
----
+    Expected format: *connection: zone1-zone2 [metadata=string, ...]*  
+    Any difference in the format will raise an error during parsing.
 
-## 4. Gestion des contraintes spécifiques
+<span style="color:lightblue">
 
-### Zones restreintes (2 tours)
-Si une zone est restreinte, considérez que le drone "consomme" sa capacité sur deux créneaux temporels successifs. Dans votre recherche de chemin, le passage vers une zone restreinte $Z$ à l'instant $t$ implique que le drone n'en sortira qu'à $t+2$.
+### ⤴️ Output
+</span>
 
-### Capacité des zones et connexions
-Lors de l'exploration des voisins dans votre Dijkstra :
-* Vérifiez si `reservation_zones[t+1][zone_voisine] < capacite_max_zone`.
-* Vérifiez si `reservation_liens[t+1][zone_actuelle][zone_voisine] < capacite_max_lien`.
-* Si la capacité est atteinte, ce mouvement est temporairement "bloqué" pour ce drone à cet instant précis.
+This project has two types of 'output':
 
----
+**1- The logs file:**
 
-## 5. Limites et Astuces
-* **Le blocage :** Le Prioritized Planning est rapide mais peut échouer (un drone prioritaire bloque le passage d'un autre de façon permanente). Si cela arrive, vous devrez peut-être revoir l'ordre de priorité ou utiliser un algorithme plus complexe comme le **Conflict-Based Search (CBS)**.
-* **Heuristique :** Si vous utilisez **A*** au lieu de Dijkstra, utilisez la distance euclidienne (ou Manhattan) divisée par la vitesse pour guider la recherche vers la destination, cela sera beaucoup plus rapide.
+This file contains, for each turn, a line showing all the drones that moved during this turn.
 
-Est-ce que cette structure de "Table de Réservation" vous semble applicable à votre architecture actuelle en Python ?
+Example : 'Turn 3: D1-maze_trap_a2 D2-maze_trap_a1 D3-gate_hell1'
 
+We see here that during turn 3, drone D1 moved to 'maze_trap_a2', drone D2 moved to  
+'maze_trap_a1' and drone D3 moved to 'gate_hell1'  
 
----------------------------------------------------------------------------------------------------------
+These informations will also be displayed on our second 'output':
 
-C'est un défi passionnant ! Votre intuition vers **Dijkstra** est un excellent point de départ, mais avec des contraintes de capacité (zones et connexions) et de temps (tours), le Dijkstra classique ne suffit plus car il ne gère pas nativement la dimension "temporelle" ni l'occupation des ressources par d'autres agents.
+**2- The visualizer:**
 
-Le **Prioritized Planning** est effectivement la méthode la plus accessible pour éviter la complexité exponentielle d'un algorithme de type CBS (*Conflict-Based Search*).
+Built with Pygame, the visualizer displays the whole map with zones and connections, following  
+the data from the input files, and processes all the drones through it, from start to end.  
+We will return to this in more detail later (cf. *Additional sections*).
 
-Voici comment structurer votre algorithme et votre code.
+<span style="color:turquoise">
 
----
+## 📚 Resources
+</span>
 
-## 1. La structure de données : Le Graphe Espace-Temps
-Puisque vos zones ont des capacités et que le temps compte, vous ne pouvez pas simplement chercher un chemin sur un graphe fixe. Un drone doit savoir si la zone $A$ est libre au tour $t=3$.
+- https://fr.wikipedia.org/wiki/Algorithme_de_Dijkstra
+- https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm
+- https://zestedesavoir.com/tutoriels/846/pygame-pour-les-zesteurs/
+- https://www.pygame.org/docs/
+- http://pygametutorials.wikidot.com/tutorials-two
 
-L'astuce consiste à utiliser un **Graphe Espace-Temps** :
-* Un "nœud" dans votre Dijkstra n'est plus juste `(Zone)`, mais `(Zone, Tour)`.
-* Un déplacement de la Zone A vers la Zone B devient une arête de `(A, t)` vers `(B, t + coût)`.
-* L'attente sur place est une arête de `(A, t)` vers `(A, t + 1)`.
 
+<span style="color:turquoise">
 
+## 🚀 Additional sections
+</span>
 
----
+### -> Algorithm explanation
 
-## 2. Structure du Dijkstra (Pseudo-code Python)
+As we've seen, our algorithm has to take into acccount a lot of parameters. My algorithm is what  
+we could call a *Dijkstra space-time*, as it is managing both available space and time.
 
-Voici comment structurer votre fonction de recherche pour un seul drone, en tenant compte des réservations faites par les drones précédents.
+**The global idea is quite simple and can be broken down into several stages:**
 
-```python
-import heapq
+**1)** The first drone looks for the shortest path from his position (start) to the end:
+- For each neighboring zone, it gets the cost (in turns) needed to access it
+- The area with the lowest access cost is given priority and stored in a queue, building the  
+path step by step.
+- We then repeat these steps until a complete path from start to end is found
 
-def dijkstra_spacetime(start_zone, end_zone, reservations, capacities, restricted_zones):
-    # reservations: dict {(zone, tour): occupation_actuelle}
-    # capacities: dict {zone: max_capacity}
-    
-    # Priority Queue: (cout_total, tour_actuel, zone_actuelle, chemin_parcouru)
-    queue = [(0, 0, start_zone, [start_zone])]
-    visited = set() # (zone, tour)
+**2)** Once we have the path for the first drone, all the zones he occupies at each turn are stored in  
+a dict 'global_state'.
 
-    while queue:
-        cost, t, current, path = heapq.heappop(queue)
+**3)** We then repeat step 1, for the second drone. However this time, we'll look, for each zone he  
+tries to access, if this zone is available or occupied by a previous drone at the given turn with our  
+'global_state'. If the zone is occupied and at full capacity when our second drone wants to access it,  
+it can't enter it and therefore has to count the wait time as the cost, or choose another zone.
 
-        if current == end_zone:
-            return path, t
+**4)** Each time a drone finds his path, we update the 'global_state' with its position for each turn.
 
-        if (current, t) in visited:
-            continue
-        visited.add((current, t))
+**5)** These steps are repeated until all drones found or failed to find a way to the end.
 
-        # Explorer les voisins + l'attente sur place
-        neighbors = get_neighbors(current) + [current] 
-        
-        for neighbor in neighbors:
-            # Calcul du coût de déplacement
-            move_cost = 2 if neighbor in restricted_zones else 1
-            arrival_time = t + move_cost
-            
-            # Vérification des contraintes
-            if is_available(neighbor, arrival_time, reservations, capacities):
-                new_path = path + [neighbor]
-                heapq.heappush(queue, (cost + move_cost, arrival_time, neighbor, new_path))
-    
-    return None # Pas de chemin trouvé
-```
+### -> Visual reprsentation
 
----
+The visualizer is a graphical interpretation of the result produced by the algorithm. I chose to create  
+mine with Pygame rather than on the terminal.
 
-## 3. Logique du Prioritized Planning
+At launch, a pygame window opens and displays all the zones with their connections. All drones are set  
+at start. Then, based on the paths we got from the algorithm, each drone moves, turn by turn, until  
+every one of them reaches the end.
 
-L'algorithme global va itérer sur chaque drone un par un :
+During execution, you can hold or press several keys, each performing an action:
 
-1.  **Trier les drones** (par exemple, par distance à vol d'oiseau vers l'objectif).
-2.  **Pour chaque drone :**
-    * Lancer le `dijkstra_spacetime`.
-    * Prendre en compte les `reservations` déjà effectuées par les drones prioritaires.
-    * Une fois le chemin trouvé, **marquer les zones du chemin comme occupées** dans le dictionnaire `reservations` pour les tours correspondants.
+|Key|Type|Effect|
+|---|---|---|
+|f|Press or Hold|Increases anumation speed|
+|s|Press or Hold|Reduces animation speed|
+|p|Press|Pauses or plays the animation|
+|r|Press|Reloads the animation from the beginning|
+|c|Press|Displays real-time occupancy of every zone|
+|esc|Press|Closes the window & ends animation|
 
-### Gestion des capacités des connexions
-Pour les connexions, vous devez ajouter une vérification supplémentaire dans votre fonction `is_available`. Une connexion entre Zone A et Zone B au tour $t$ doit aussi être enregistrée dans un dictionnaire de réservation spécifique : `reservations_edges[(A, B, t)]`.
-
----
-
-## 4. Points d'attention pour votre projet
-
-* **L'attente infinie :** Pour éviter que votre Dijkstra ne tourne en boucle, fixez une limite de temps maximale ($T_{max}$).
-* **Capacité des zones :** Si une zone a une capacité de 5, `is_available` doit vérifier que `reservations[(zone, t)] < 5`.
-* **Zones restreintes :** Votre coût de 2 tours est parfaitement géré par le `cost + 2` dans le Dijkstra. Cela incite l'algorithme à contourner la zone si un chemin plus long mais plus rapide existe.
-
----
-
-## Pour aller plus loin
-Si vous avez beaucoup de drones, le Prioritized Planning peut échouer car le premier drone peut "bloquer" le passage des autres. Une solution simple est de tester différents ordres de priorité.
-
-Souhaitez-vous que je détaille la fonction `is_available` pour gérer précisément la capacité des connexions entre les zones ?
-
-
-------------------------------------------------------------------------------------------------------------
-
+With this tool, the user can clearly see what is happening, where and when each drone is moving in  
+real-time , in a playful and enjoyable way.
 
 <!-- Je dois, pour un projet python, realiser un algorithme permettant a un nombre donne de drones de partir d'une zone 'start' pour arriver a une zone 'end', en passant par de multiples autres zones, le tout en depensant le moins de tours possible. Plusieurs parametres sont a prendre en compte :
 
@@ -205,118 +190,3 @@ Souhaitez-vous que je détaille la fonction `is_available` pour gérer précisé
 - Un drone peut attendre sur sa zone actuelle si necessaire.
 
 Pour resoudre ce probleme, je pensais utiliser un algorithme Dijkstra avec prioritized planning, mais cela necessite evidemment l'ecriture d'un dijkstra, que je ne vois pas comment structurer. Peux-tu me donner une structure pour le dijkstra a integrer, puis une pour son integration au sein du graphe espace-temps ? -->
-
-
-------------------------------------------------------------------------------------------------------------
-
-
-C'est un défi passionnant. Votre problème ne relève pas seulement du plus court chemin classique, mais du **Multi-Agent Pathfinding (MAPF)**. Puisque vous avez des contraintes de capacité (zones et connexions) et de temps (zones restreintes), l'approche par **Graphe Espace-Temps** est effectivement la plus robuste.
-
-Voici comment structurer votre algorithme Dijkstra et son intégration.
-
----
-
-## 1. Structure du Dijkstra "Espace-Temps"
-
-Dans un Dijkstra classique, un nœud est simplement une position $u$. Dans votre cas, un nœud est un couple **(position, temps)**, noté $(u, t)$. Cela permet de gérer l'attente sur place et les capacités qui évoluent au fil des tours.
-
-### La logique du nœud
-Pour chaque drone, vous cherchez le chemin dans ce graphe augmenté.
-
-```python
-import heapq
-
-def dijkstra_space_time(start_node, end_node, start_time, constraints, graph_data):
-    """
-    - start_node: Nom de la zone de départ
-    - end_node: Nom de la zone d'arrivée
-    - start_time: Temps auquel le drone commence son trajet
-    - constraints: Dict ou Set contenant les réservations des drones précédents 
-                   ex: {(zone, temps): occupation, (zone_a, zone_b, temps): occupation}
-    - graph_data: Dictionnaire contenant les capacités et types de zones
-    """
-    
-    # Priority Queue: (coût_total, temps_actuel, zone_actuelle, chemin_parcouru)
-    queue = [(0, start_time, start_node, [start_node])]
-    visited = set() # (zone, temps)
-
-    while queue:
-        cost, t, current_zone, path = heapq.heappop(queue)
-
-        if current_zone == end_node:
-            return path, t # On a trouvé le chemin le plus rapide
-
-        if (current_zone, t) in visited:
-            continue
-        visited.add((current_zone, t))
-
-        # --- EXPLORATION DES VOISINS (Mouvements + Attente) ---
-        # 1. Attendre sur place (toujours possible si capacité respectée)
-        neighbors = graph_data.get_neighbors(current_zone) + [current_zone]
-
-        for next_zone in neighbors:
-            # Calcul du temps d'arrivée selon le type de zone
-            travel_time = 2 if graph_data.is_restricted(next_zone) else 1
-            arrival_time = t + travel_time
-            
-            # Vérification des contraintes de capacité
-            if is_valid(current_zone, next_zone, arrival_time, constraints, graph_data):
-                new_cost = cost + travel_time
-                heapq.heappush(queue, (new_cost, arrival_time, next_zone, path + [next_zone]))
-
-    return None, None
-```
-
----
-
-## 2. Intégration : Le Prioritized Planning
-
-Le principe est de planifier les drones les uns après les autres. Chaque drone "réserve" ses zones et ses connexions dans une table de réservation globale, que les drones suivants devront consulter.
-
-### Structure globale de l'algorithme
-
-
-
-1.  **Trier les drones** : Optionnel, mais souvent efficace (ex: les drones les plus éloignés de l'arrivée d'abord).
-2.  **Table de réservation** : Un dictionnaire qui suit l'occupation.
-    * `node_occupancy[(zone, temps)]` : Nombre de drones dans cette zone à l'instant $T$.
-    * `edge_occupancy[(u, v, temps)]` : Nombre de drones sur cette connexion à l'instant $T$.
-
-```python
-def solve_multi_drone(drones, graph_data):
-    global_constraints = {
-        'nodes': {}, # (zone, t) -> nb_drones
-        'edges': {}  # (u, v, t) -> nb_drones
-    }
-    final_schedules = {}
-
-    for drone_id in drones:
-        # 1. Calculer le chemin via Dijkstra Espace-Temps
-        path, arrival_time = dijkstra_space_time(
-            drone.start, 
-            drone.end, 
-            0, 
-            global_constraints, 
-            graph_data
-        )
-
-        if path:
-            # 2. Mettre à jour les contraintes pour les drones suivants
-            update_constraints(path, global_constraints, graph_data)
-            final_schedules[drone_id] = path
-        else:
-            print(f"Impossible de trouver un chemin pour {drone_id}")
-
-    return final_schedules
-```
-
----
-
-## 3. Points clés à ne pas oublier
-
-* **Capacité des zones** : Dans votre fonction `is_valid`, vérifiez que `global_constraints['nodes'].get((next_zone, arrival_time), 0) < graph_data.capacity(next_zone)`.
-* **Capacité des connexions** : Attention, si un drone se déplace de $A$ vers $B$ entre $t$ et $t+1$, il consomme la capacité de l'arc $(A, B)$ à l'instant $t$.
-* **Le "Stay" à l'arrivée** : Une fois qu'un drone arrive à sa zone `end`, il continue d'occuper une place dans la capacité de cette zone pour tous les temps $t > T_{arrivée}$, sauf si vous considérez qu'il "disparaît" du projet une fois arrivé.
-* **Zone restreinte** : Le fait qu'une zone restreinte prenne 2 tours signifie que le drone est "en transit" ou occupe la zone plus longtemps. Dans votre Dijkstra, assurez-vous que pendant ces 2 tours, le drone est comptabilisé dans les contraintes pour éviter les collisions.
-
-Cette structure est la plus efficace pour éviter les collisions tout en optimisant le temps global sans tomber dans la complexité exponentielle d'une recherche globale simultanée.

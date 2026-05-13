@@ -15,5 +15,6 @@ def parse_arguments() -> Namespace:
                             help="input file relative path")
         parsed = parser.parse_args()
     except Exception:
-        raise Exception("[ERROR]: no input file found")
+        raise Exception("[ERROR]: no input file found ; please enter your "
+                        "input file's path after 'make run'")
     return parsed

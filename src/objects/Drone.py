@@ -1,7 +1,6 @@
 class Drone:
-    def __init__(self, id, position):
+    def __init__(self, id: str):
         self.__id = id
-        self.__position = position
 
-    def get_id(self):
+    def get_id(self) -> str:
         return self.__id

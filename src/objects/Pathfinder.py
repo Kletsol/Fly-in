@@ -1,18 +1,21 @@
 import heapq
+from src import Zone, Connection, Drone
+from typing import Any
 
 
 class PathFinder:
-    def __init__(self, start, end, zones, connections, drones):
+    def __init__(self, start: Zone, end: Zone, zones: list[Zone],
+                 connections: list[Connection], drones: list[Drone]) -> None:
         self.start = start
         self.end = end
         self.__zones = zones
         self.__connections = connections
         self.__drones = drones
-        self.output = {}
-        self.max_time = 1000
+        self.max_time = 2000
 
-    def process(self):
-        global_state = {'nodes': {}, 'edges': {}}
+    def process(self) -> dict[str, list[list[Any]]]:
+        global_state: dict[str, dict[tuple[str, float], int]] = \
+            {'nodes': {}, 'edges': {}}
         final_schedule = {}
 
         for drone in self.__drones:
@@ -25,9 +28,11 @@ class PathFinder:
                                 " could not find a path\033[0;0m")
         return final_schedule
 
-    def dijkstra_space_time(self, global_state):
-        queue = [(0, 0, self.start.name, [[0, self.start.name]])]
-        visited = {}
+    def dijkstra_space_time(self, global_state: dict[str, dict[
+            tuple[str, float], int]]
+    ) -> tuple[list[list[Any]], float] | tuple[None, None]:
+        queue = [(0.0, 0.0, self.start.name, [[0, self.start.name]])]
+        visited: dict[tuple[Any, float], float] = {}
 
         while queue:
             cost, turn, curr_zone_name, path = heapq.heappop(queue)
@@ -44,7 +49,7 @@ class PathFinder:
                     continue
             visited[key] = cost
 
-            current_zone = self.get_zone(curr_zone_name)
+            current_zone: Zone = self.get_zone(curr_zone_name)
             # --- EXPLORATION DES VOISINS (Mouvements + Attente) ---
             # 1. Attendre sur place (toujours possible si capacité respectée)
             next_zones = current_zone.get_next_zones(self.__zones,
@@ -62,7 +67,8 @@ class PathFinder:
                 arrival_time = turn + travel_time
 
                 if not self.is_available_link_full(current_zone, next_zone,
-                                                   turn, arrival_time,
+                                                   int(turn),
+                                                   int(arrival_time),
                                                    global_state):
                     continue
 
@@ -82,17 +88,19 @@ class PathFinder:
 
         return None, None
 
-    def is_available_zone(self, zone, turn, global_state) -> bool:
+    def is_available_zone(self, zone: Zone, turn: float,
+                          global_state: dict[str, dict[tuple[str, float], int]]
+                          ) -> bool:
         current_occupancy = global_state['nodes'].get((zone.name, turn), 0)
         capacity = zone.get_capacity()
         if zone.type in ['start_hub', 'end_hub']:
             capacity = len(self.__drones)
         if current_occupancy < capacity:
-            # print(turn)
             return True
         return False
 
-    def get_connection(self, prev_zone, next_zone, return_name):
+    def get_connection(self, prev_zone: str, next_zone: str,
+                       return_name: bool) -> Any:
         zones = ''
         for connection in self.__connections:
             zones_list = connection.get_linked_zones()
@@ -102,12 +110,15 @@ class PathFinder:
                     return zones
                 else:
                     return connection
-        return None
 
-    def is_available_link_full(self, zone_1, zone_2, start_time, end_time,
-                               global_state):
+    def is_available_link_full(self, zone_1: Zone, zone_2: Zone,
+                               start_time: int, end_time: int,
+                               global_state: dict[str, dict[tuple[str, float],
+                                                            int]]) -> bool:
+
         # Trouver la connexion
-        connection = self.get_connection(zone_1.name, zone_2.name, False)
+        connection: Connection = self.get_connection(zone_1.name, zone_2.name,
+                                                     False)
 
         if connection is None:
             return False
@@ -120,7 +131,10 @@ class PathFinder:
                 return False
         return True
 
-    def update_states(self, path, global_state):
+    def update_states(self, path: list[list[Any]],
+                      global_state: dict[str, dict[tuple[str, float], int]]
+                      ) -> None:
+
         for i in range(len(path) - 1):
             time_a, zone_a = path[i]
             time_b, zone_b = path[i + 1] if '-' not in path[i + 1][1] else \
@@ -131,7 +145,7 @@ class PathFinder:
                 global_state['nodes'].get((zone_a, time_a), 0) + 1
 
             # 2. Lien : occupé pendant tout le déplacement
-            for t in range(time_a, time_b):
+            for t in range(int(time_a), int(time_b)):
                 edge_key = tuple(sorted([zone_a, zone_b])) + (t,)
                 global_state['edges'][edge_key] = \
                     global_state['edges'].get(edge_key, 0) + 1
@@ -141,7 +155,7 @@ class PathFinder:
         key = (last_zone, last_time)
         global_state['nodes'][key] = global_state['nodes'].get(key, 0) + 1
 
-    def get_zone(self, name):
+    def get_zone(self, name: str) -> Any:
         for zone in self.__zones:
             if zone.name == name:
-                return (zone)
+                return zone

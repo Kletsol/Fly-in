@@ -1,5 +1,8 @@
+from typing import Any
+
+
 class Zone:
-    def __init__(self, zone: dict):
+    def __init__(self, zone: dict[Any, Any]):
         self.type = zone['zone_type']
         self.name = zone['name']
         self.__x_coord = zone['x_coord']
@@ -10,22 +13,22 @@ class Zone:
             if 'zone' in self.__metadata:
                 self.zone_type = self.__metadata['zone']
 
-    def get_coords(self):
+    def get_coords(self) -> tuple[int, int]:
         return self.__x_coord, self.__y_coord
 
-    def get_visual_coords(self):
+    def get_visual_coords(self) -> list[int]:
         return [self.__x_coord * 180 + 80, self.__y_coord * 180 + 700]
 
-    def get_metadata(self) -> dict:
+    def get_metadata(self) -> dict[Any, Any] | Any:
         return self.__metadata
 
-    def get_color(self) -> str:
+    def get_color(self) -> str | Any:
         if 'color' in self.__metadata.keys():
             return self.__metadata['color']
         else:
             return 'white'
 
-    def get_rgb(self) -> tuple | list[tuple]:
+    def get_rgb(self) -> tuple[int, int, int]:
         match self.get_color():
 
             case 'white':
@@ -64,18 +67,11 @@ class Zone:
                 return (0, 153, 153)
             case 'crimson':
                 return (255, 0, 0)
-            case 'rainbow':
-                return [(204, 0, 0),
-                        (255, 128, 0),
-                        (255, 255, 51),
-                        (0, 204, 0),
-                        (0, 255, 255),
-                        (51, 153, 255),
-                        (153, 51, 255)]
             case _:
                 return (255, 255, 255)
 
-    def get_next_zones(self, zones, connections) -> list:
+    def get_next_zones(self, zones: list[Any], connections: list[Any]) -> \
+            list[Any]:
         next_zones = []
         for connection in connections:
             if connection.get_linked_zones()[0] == self.name:
@@ -88,21 +84,21 @@ class Zone:
                         next_zones.append(zone)
         return next_zones
 
-    def get_cost(self) -> int:
+    def get_cost(self) -> float:
         if self.zone_type is None:
-            cost = 1
+            cost = 1.0
         else:
             if self.zone_type == 'normal':
-                cost = 1
+                cost = 1.0
             if self.zone_type == 'restricted':
-                cost = 2
+                cost = 2.0
             if self.zone_type == 'priority':
-                cost = 1
+                cost = 1.0
             if self.zone_type == 'blocked':
                 cost = float('inf')
         return cost
 
-    def get_capacity(self) -> int:
+    def get_capacity(self) -> int | Any:
         if 'max_drones' in self.get_metadata().keys():
             return self.get_metadata()['max_drones']
         else:

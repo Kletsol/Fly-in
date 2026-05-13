@@ -3,7 +3,7 @@ from src import get_parsed_map, parse_arguments, Visualizer, Zone, \
 from pathlib import Path
 
 
-def main():
+def main() -> None:
     zones = []
     links = []
     drones = []
@@ -13,10 +13,10 @@ def main():
         if input.suffix != '.txt':
             raise ValueError("[ERROR]: input file has to be a .txt file")
 
-        config = get_parsed_map(input)
+        config = get_parsed_map(str(input))
 
         for drone in config['drones']:
-            drones.append(Drone(drone['id'], drone['place']))
+            drones.append(Drone(drone['id']))
 
         for zone in config['nodes']:
             zones.append(Zone(zone))
@@ -24,8 +24,6 @@ def main():
         for connection in config['connections']:
             links.append(Connection(connection))
 
-        start = None
-        end = None
         for zone in zones:
             if zone.type == 'start_hub':
                 start = zone
@@ -35,12 +33,15 @@ def main():
         pathfinder = PathFinder(start, end, zones, links, drones)
         schedule = pathfinder.process()
 
-        visualizer = Visualizer(zones, links, schedule)
-        visualizer.on_execute()
+        restart = True
+
+        while restart:
+            visualizer = Visualizer(zones, links, schedule)
+            restart = visualizer.on_execute()
 
         with open("logs.txt", 'w') as file:
-            for turn, data in visualizer.logs:
-                file.write(f"Turn {turn}:{data.split(':')[1]}\n\n")
+            for data in visualizer.logs:
+                file.write(f"Turn {data[0]}: {data[1]}\n\n")
 
     except PermissionError:
         print("\033[0;31m[ERROR]: permission denied for input file\033[0;0m")
