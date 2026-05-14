@@ -1,8 +1,7 @@
-from abc import ABC
 from typing import Any
 
 
-class Connection(ABC):
+class Connection:
     def __init__(self, connection: dict[str, Any]):
         self.__zones = connection['linked_zones']
         if 'metadata' in connection.keys():

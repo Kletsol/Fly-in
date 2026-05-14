@@ -19,7 +19,6 @@ class Visualizer:
         self.scroll_speed = 20
         self.clock = pygame.time.Clock()
         self.animation_speed = 0.02
-        self.progress = 0
         self.color_loop = 0.0
         self.render_capacity = False
         self.logs: list[list[int | str]] = []
@@ -31,7 +30,8 @@ class Visualizer:
                                                      pygame.HWSURFACE |
                                                      pygame.DOUBLEBUF)
         self._drone_image = pygame.transform.scale(
-            pygame.image.load("drone.png").convert_alpha(), (61, 61))
+            pygame.image.load("src/assets/drone.png").convert_alpha(),
+            (61, 61))
         self.font = pygame.font.SysFont("Arial", 26, True)
         self._running = True
         return True
@@ -182,11 +182,6 @@ class Visualizer:
         for i in range(1, len(path)):
             current_turn, current_zone = path[i]
             previous_zone = path[i - 1][1]
-
-            # Afficher uniquement si :
-            # - on est au bon tour
-            # - ce n'est pas la zone start
-            # - le drone a réellement changé de zone
             if (
                 current_turn == turn
                 and current_zone != 'start'
@@ -217,7 +212,6 @@ class Visualizer:
 
     def on_execute(self) -> bool:
         turn = 0
-        self.progress = 0
         self.color_loop = 0.0
         self.global_time = 0.0
         stop = False
@@ -226,7 +220,8 @@ class Visualizer:
             self._running = False
 
         image = pygame.transform.scale(
-            pygame.image.load("background.jpg").convert(), self.size)
+            pygame.image.load("src/assets/background.jpg").convert(),
+            self.size)
         while self._running:
             for event in pygame.event.get():
                 self.on_event(event)
@@ -271,9 +266,10 @@ class Visualizer:
                         self.on_render_drone(zone, next_zone, local_progress)
                         break
 
-            if [int(self.global_time) + 1, turn_steps] not in self.logs and \
-                    int(self.global_time) < final_turn:
-                self.logs.append([int(self.global_time) + 1, turn_steps])
+            if [int(self.global_time) + 1, turn_steps.split(':')[-1]] not in \
+                    self.logs and int(self.global_time) < final_turn:
+                self.logs.append([int(self.global_time) + 1,
+                                  turn_steps.split(':')[-1]])
             if not stop:
                 self.on_render_steps(turn_steps)
             self.global_time += self.animation_speed

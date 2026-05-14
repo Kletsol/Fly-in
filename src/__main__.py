@@ -1,5 +1,5 @@
 from src import get_parsed_map, parse_arguments, Visualizer, Zone, \
-    Connection, Drone, PathFinder
+    Connection, Drone, Simulation, Dijkstra
 from pathlib import Path
 
 
@@ -30,8 +30,9 @@ def main() -> None:
             if zone.type == 'end_hub':
                 end = zone
 
-        pathfinder = PathFinder(start, end, zones, links, drones)
-        schedule = pathfinder.process()
+        algorithm = Dijkstra(start, end, zones, links, drones)
+        simulator = Simulation(drones, algorithm)
+        schedule = simulator.simulate()
 
         restart = True
 
@@ -41,7 +42,7 @@ def main() -> None:
 
         with open("logs.txt", 'w') as file:
             for data in visualizer.logs:
-                file.write(f"Turn {data[0]}: {data[1]}\n\n")
+                file.write(f"Turn {data[0]}:{data[1]}\n\n")
 
     except PermissionError:
         print("\033[0;31m[ERROR]: permission denied for input file\033[0;0m")

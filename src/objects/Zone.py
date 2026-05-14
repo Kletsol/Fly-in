@@ -98,10 +98,10 @@ class Zone:
                 cost = float('inf')
         return cost
 
-    def get_priority_penalty(self) -> int:
+    def get_priority_benefit(self) -> bool:
         if self.zone_type == 'priority':
-            return 0
-        return 1
+            return True
+        return False
 
     def get_capacity(self) -> int | Any:
         if 'max_drones' in self.get_metadata().keys():
