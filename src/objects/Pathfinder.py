@@ -3,7 +3,7 @@ from typing import Any
 
 
 class Simulation:
-    def __init__(self, drones: list[Drone], algorithm) -> None:
+    def __init__(self, drones: list[Drone], algorithm: Any) -> None:
         self.__drones = drones
         self.algorithm = algorithm
 
