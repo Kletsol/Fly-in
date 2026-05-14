@@ -118,11 +118,28 @@ We will return to this in more detail later (cf. *Additional sections*).
 ## 📚 Resources
 </span>
 
-- https://fr.wikipedia.org/wiki/Algorithme_de_Dijkstra
-- https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm
-- https://zestedesavoir.com/tutoriels/846/pygame-pour-les-zesteurs/
-- https://www.pygame.org/docs/
-- http://pygametutorials.wikidot.com/tutorials-two
+Some articles, references and tutorials I used during the elaboration of this project:
+
+- https://fr.wikipedia.org/wiki/Algorithme_de_Dijkstra :  
+A well-documented page explaining how a Dijkstra works, how it was invented, as well as  
+multiple variants and comparisons.
+
+- https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm :  
+This may seem redundant with the previous one, and it is in a certain proportion, but it  
+also adds a lot of documentation on the subject the first was not providing.
+
+- https://zestedesavoir.com/tutoriels/846/pygame-pour-les-zesteurs/ :  
+A very complete Pygame tutorial, in french. It helped me a lotfr my first steps in Pygame.
+
+- https://www.pygame.org/docs/ :  
+Litteraly everything you need to know on Pygame : classes, methods, usage... everything !
+
+- http://pygametutorials.wikidot.com/tutorials-two :  
+Once again, a very nice tutorial, in english this time, that complements the other one.
+
+AI was used mainly for learning purposes and to improve my understanding of what I read before  
+if needed. I also used it one time to find an issue I couldn't find myself in my algorithm, and  
+regretted it as it took 2 days before I finally managed to find it...
 
 
 <span style="color:turquoise">
@@ -176,7 +193,7 @@ During execution, you can hold or press several keys, each performing an action:
 |esc|Press|Closes the window & ends animation|
 
 With this tool, the user can clearly see what is happening, where and when each drone is moving in  
-real-time , in a playful and enjoyable way.
+real-time, in a playful and enjoyable way.
 
 <!-- Je dois, pour un projet python, realiser un algorithme permettant a un nombre donne de drones de partir d'une zone 'start' pour arriver a une zone 'end', en passant par de multiples autres zones, le tout en depensant le moins de tours possible. Plusieurs parametres sont a prendre en compte :
 

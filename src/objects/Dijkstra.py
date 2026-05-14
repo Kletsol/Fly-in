@@ -52,6 +52,8 @@ class Dijkstra(BaseAlgorithm):
             for next_zone in next_zones:
                 # Arrival_time calculation
                 travel_time = next_zone.get_cost()
+                if travel_time == float('inf'):
+                    continue
                 arrival_time = turn + travel_time
 
                 if not self.is_available_link_full(current_zone, next_zone,

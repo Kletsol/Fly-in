@@ -145,7 +145,7 @@ class Visualizer:
     def on_render_occupancy(self, current_time: int) -> None:
         occupancy_counts = {zone.name: 0 for zone in self._zones}
 
-        # 2. Broswe schedule to find where each drone is
+        # Browse schedule to find where each drone is
         for drone, path in self.schedule.items():
             for i in range(len(path) - 1):
                 t1, z1 = path[i]
@@ -175,6 +175,82 @@ class Visualizer:
 
             text_surf = self.font.render(summary, True, color)
             self._display_surf.blit(text_surf, (x_text, y_text))
+
+    def on_render_connection_occupancy(self, current_time: int) -> None:
+        connection_counts = {}
+
+        # Initialisation des connexions
+        for connection in self._connections:
+            z1, z2 = connection.get_linked_zones()
+
+            # clé unique peu importe le sens
+            key = tuple(sorted((z1, z2)))
+
+            connection_counts[key] = {
+                "count": 0,
+                "capacity": connection.get_capacity()
+            }
+
+        # Comptage des drones actuellement en déplacement
+        for drone, path in self.schedule.items():
+            for i in range(len(path) - 1):
+
+                t1, z1 = path[i]
+
+                # Gestion des zones restreintes
+                if (
+                    i + 2 < len(path)
+                    and '-' in path[i + 1][1]
+                ):
+                    t2, z2 = path[i + 2]
+                else:
+                    t2, z2 = path[i + 1]
+
+                # Drone en déplacement
+                if t1 <= current_time < t2 and z1 != z2:
+
+                    key = tuple(sorted((z1, z2)))
+
+                    if key in connection_counts:
+                        connection_counts[key]["count"] += 1
+
+                    break
+
+        # Affichage
+        for connection in self._connections:
+            z1, z2 = connection.get_linked_zones()
+            key = tuple(sorted((z1, z2)))
+
+            data = connection_counts[key]
+            count = data["count"]
+            capacity = data["capacity"]
+
+            # Récupération des coordonnées des zones
+            start = None
+            end = None
+
+            for zone in self._zones:
+                if zone.name == z1:
+                    start = zone.get_visual_coords()
+                if zone.name == z2:
+                    end = zone.get_visual_coords()
+
+            if start and end:
+                # Milieu de la connexion
+                mid_x = (start[0] + end[0]) / 2 + self.camera_offset[0]
+                mid_y = (start[1] + end[1]) / 2 + self.camera_offset[1]
+
+                summary = f"{count}/{capacity}"
+
+                color = (
+                    (255, 255, 51)
+                    if count <= capacity
+                    else (255, 0, 0)
+                )
+
+                text_surf = self.font.render(summary, True, color)
+
+                self._display_surf.blit(text_surf, (mid_x, mid_y))
 
     def get_steps(self, turn: int, drone: str, path: list[list[Any]]) -> str:
         step_summary = ''
@@ -241,6 +317,7 @@ class Visualizer:
             turn_steps = 'Current turn :'
             if self.render_capacity is True:
                 self.on_render_occupancy(int(self.global_time))
+                self.on_render_connection_occupancy(int(self.global_time))
 
             # Drones animation management
             for drone, path in self.schedule.items():
