@@ -185,11 +185,13 @@ During execution, you can hold or press several keys, each performing an action:
 
 |Key|Type|Effect|
 |---|---|---|
-|f|Press or Hold|Increases anumation speed|
+|f|Press or Hold|Increases animation speed|
 |s|Press or Hold|Reduces animation speed|
 |p|Press|Pauses or plays the animation|
 |r|Press|Reloads the animation from the beginning|
-|c|Press|Displays real-time occupancy of every zone|
+|c|Press|Displays real-time occupancy of every connection|
+|z|Press|Displays real-time occupancy of every zone|
+|h|Press|Hides every activated occupancy display|
 |esc|Press|Closes the window & ends animation|
 
 With this tool, the user can clearly see what is happening, where and when each drone is moving in  

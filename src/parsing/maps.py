@@ -2,22 +2,43 @@ from typing import Any, Optional
 
 
 class ConfigError(Exception):
+    """A custom configuration error type"""
     pass
 
 
 class MapError(Exception):
+    """A custom map error type"""
     pass
 
 
 class ZoneError(Exception):
+    """A custom zone error type"""
     pass
 
 
 class ConnectionError(Exception):
+    """A custom connection error type"""
     pass
 
 
 def get_parsed_map(path: str) -> dict[str, Any]:
+    """A method that takes every line of the input file,
+    parses it depending on the type of content and returns the parsed config
+
+    Args:
+        path (str): The path to the input file
+
+    Raises:
+        ValueError: Any error related to the value or the type of a variable
+        ConfigError: Any error related to the general configuration
+        MapError: Any error related to the map itself
+        ZoneError: Any error related to a zone
+        ConnectionError: Any error related to a connection
+        FileNotFoundError: Any error related to a file not found
+
+    Returns:
+        dict[str, Any]: The parsed config
+    """
     try:
         with open(path, "r") as file:
             raw_config = file.readlines()
@@ -92,8 +113,8 @@ def get_parsed_map(path: str) -> dict[str, Any]:
                         nodes.append(get_zone(nodes, caracs, valid_metadata))
                     else:
                         nodes.append(get_zone(nodes, line.split(' ')))
-                except Exception as e:
-                    raise Exception(f"\033[0;31mLine {line_count + comm_count}"
+                except (Exception, MapError, ZoneError, ConfigError) as e:
+                    raise ZoneError(f"\033[0;31mLine {line_count + comm_count}"
                                     f" - {e}\033[0;0m")
 
             # Connections
@@ -111,9 +132,10 @@ def get_parsed_map(path: str) -> dict[str, Any]:
                         connections.append(
                             get_connection(nodes, connections,
                                            line.split(' ')))
-                except Exception as e:
-                    raise Exception(f"\033[0;31mLine {line_count + comm_count}"
-                                    f" - {e}\033[0;0m")
+                except (Exception, ConnectionError) as e:
+                    raise ConnectionError(f"\033[0;31mLine "
+                                          f"{line_count + comm_count}"
+                                          f" - {e}\033[0;0m")
 
             # Other cases
             else:
@@ -135,6 +157,20 @@ def get_parsed_map(path: str) -> dict[str, Any]:
 
 
 def get_drones(line: str) -> list[dict[str, str]]:
+    """A method that takes a line, extracts the number of drones
+    and creates a list of drone IDs
+
+    Args:
+        line (str): The line to process
+
+    Raises:
+        MapError: No number of drones found
+        MapError: Number of drones not an int
+        MapError: Number of drones not positive
+
+    Returns:
+        list[dict[str, str]]: A list of drone IDs
+    """
     data = line.split(' ')
     if len(data) < 2:
         raise MapError("[ERROR]: No number of drones found")
@@ -159,6 +195,19 @@ def get_drones(line: str) -> list[dict[str, str]]:
 def get_zone(prev_zones: list[Any], line: list[str],
              metadata: Optional[dict[Any, Any]] = None) -> \
                 dict[str, Any]:
+    """A method that, for a line defining a zone, parses it and returns all
+    the data organised in a dict
+
+    Raises:
+        ZoneError: Too many arguments in line
+        ZoneError: Not enough arguments in line
+        ZoneError: invalid character '-' in zone name
+        ZoneError: name already taken
+        ValueError: Coordinates not of type int
+
+    Returns:
+        dict[str, Any]: A dict containing the zone's data
+    """
     if len(line) > 4:
         raise ZoneError("[ERROR]: Too many arguments in line. Please make "
                         "sure each argument is separated by a space, and "
@@ -194,6 +243,16 @@ def get_connection(prev_zones: list[Any],
                    line: list[str],
                    metadata: Optional[dict[Any, Any]] = None) -> \
                     dict[str, Any]:
+    """A method that, for a line defining a connection, parses it and returns
+    all the data organised in a dict
+
+    Raises:
+        ConnectionError: Duplicated connection
+        ConnectionError: Inexistent linked zone
+
+    Returns:
+        dict[str, Any]: A dict containing the connection's data
+    """
 
     # Duplication check
     linked_zones = line[1].rstrip('\n').split('-')
@@ -216,6 +275,26 @@ def get_connection(prev_zones: list[Any],
 
 
 def verify_metadata(metadata: list[str], area_type: str) -> dict[str, Any]:
+    """A method that takes the line's metadata (zone or connection), and
+    parses it depending on the type of the line
+
+    Args:
+        metadata (list[str]): The extracted metadata
+        area_type (str): The type of the line (zone or connnection)
+
+    Raises:
+        ConfigError: Invalid metadata block
+        ZoneError: Invalid metadata block
+        ZoneError: Invalid zone type
+        ZoneError: Invalid color
+        MapError: Duplicated metadata
+        ConnectionError: Invalid metadata block
+        ConfigError: Capacity value not a positive int
+        ConfigError: Capacity value not a positive int
+
+    Returns:
+        dict[str, Any]: The validated metadata
+    """
     output: dict[str, str | int] = {}
     current_data_types = []
     for raw_data in metadata:
@@ -225,11 +304,11 @@ def verify_metadata(metadata: list[str], area_type: str) -> dict[str, Any]:
         output.update({data[0]: data[1]})
         if area_type == 'zone':
             if data[0] not in ['zone', 'color', 'max_drones']:
-                raise MapError(f"[ERROR]: invalid metadata block '{data[0]}'")
+                raise ZoneError(f"[ERROR]: invalid metadata block '{data[0]}'")
             if data[0] == 'zone':
                 if data[1] not in ['normal', 'blocked',
                                    'restricted', 'priority']:
-                    raise MapError(f"[ERROR]: invalid zone type '{data[1]}'")
+                    raise ZoneError(f"[ERROR]: invalid zone type '{data[1]}'")
             if data[0] == 'color':
                 if not data[1].isalpha():
                     raise ZoneError(f"[ERROR]: invalid color '{data[1]}' "
@@ -240,7 +319,8 @@ def verify_metadata(metadata: list[str], area_type: str) -> dict[str, Any]:
                 raise MapError(f"[ERROR]: duplicated metadata '{data[0]}'")
         if area_type == 'connection':
             if data[0] not in ['max_link_capacity']:
-                raise MapError(f"[ERROR]: invalid metadata block '{data[0]}'")
+                raise ConnectionError("[ERROR]: invalid metadata block "
+                                      f"'{data[0]}'")
         if data[0] == 'max_drones' or data[0] == 'max_link_capacity':
             try:
                 value = int(data[1])

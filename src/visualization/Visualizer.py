@@ -7,6 +7,9 @@ with contextlib.redirect_stdout(None):
 
 
 class Visualizer:
+    """A class that uses Pygame to generate a visual rendition
+    of the graph, the drones and their movements
+    """
     def __init__(self, zones: list[Any], connections: list[Any],
                  schedule: dict[str, list[list[Any]]]) -> None:
         self._running = True
@@ -20,10 +23,16 @@ class Visualizer:
         self.clock = pygame.time.Clock()
         self.animation_speed = 0.02
         self.color_loop = 0.0
-        self.render_capacity = False
+        self.render_link_capacity = False
+        self.render_area_capacity = False
         self.logs: list[list[int | str]] = []
 
     def on_init(self) -> bool:
+        """Initializes Pygame and several values the execution will need later
+
+        Returns:
+            bool: Whether Pygame has been correctly initialized or not
+        """
         pygame.init()
         self.size = self.width, self.height = 3840, 2160
         self._display_surf = pygame.display.set_mode(self.size,
@@ -37,6 +46,12 @@ class Visualizer:
         return True
 
     def on_event(self, event: Any) -> None:
+        """A method that executes an action depending on the given event
+
+        Args:
+            event (Any): The event, corresponding to a key pressed
+            during execution
+        """
         if event.type == pygame.QUIT:
             self.restart = False
             self._running = False
@@ -48,10 +63,15 @@ class Visualizer:
                 else:
                     self.animation_speed = 0.02
             if event.key == pygame.K_c:
-                if self.render_capacity:
-                    self.render_capacity = False
-                else:
-                    self.render_capacity = True
+                self.render_link_capacity = False if self.render_link_capacity\
+                    else True
+            if event.key == pygame.K_z:
+                self.render_area_capacity = False if self.render_area_capacity\
+                    else True
+            if event.key == pygame.K_h:
+                if self.render_area_capacity or self.render_link_capacity:
+                    self.render_area_capacity = False
+                    self.render_link_capacity = False
             if event.key == pygame.K_ESCAPE:
                 self.restart = False
                 self._running = False
@@ -66,6 +86,9 @@ class Visualizer:
                 self.camera_offset[1] -= self.scroll_speed
 
     def on_loop(self) -> None:
+        """Cheks if a key is pressed during execution, and executes
+        an action depending on the key
+        """
         keys = pygame.key.get_pressed()
         if keys[pygame.K_f] and self.animation_speed < 0.2:
             self.animation_speed += 0.001
@@ -81,11 +104,24 @@ class Visualizer:
             self.camera_offset[1] -= self.scroll_speed
 
     def rainbow_color(self, speed: float = 0.2) -> tuple[int, int, int]:
+        """A method dedicated to creating rainbow colors
+
+        Args:
+            speed (float, optional): The display speed. Defaults to 0.2.
+
+        Returns:
+            tuple[int, int, int]: A stage of the rainbow
+        """
         color = (pygame.time.get_ticks() * speed / 1000) % 1.0
         r, g, b = colorsys.hsv_to_rgb(color, 1, 1)
         return (int(r * 255), int(g * 255), int(b * 255))
 
     def on_render_zone(self, zone: Zone) -> None:
+        """A method that displays the given zone as a colored square
+
+        Args:
+            zone (Zone): The zone to display
+        """
         coords = zone.get_visual_coords()
         if zone.get_color() == 'rainbow':
             color = self.rainbow_color()
@@ -98,12 +134,16 @@ class Visualizer:
         y_text = y_coord - 32
 
         text_surf = self.font.render(zone.name, True, color)
-        capacity_surf = self.font.render(str(zone.get_capacity()), True, color)
         pygame.draw.rect(self._display_surf, color, (x_coord, y_coord, 61, 61))
         self._display_surf.blit(text_surf, (x_text, y_text))
-        self._display_surf.blit(capacity_surf, (x_text, y_text - 46))
 
     def on_render_connection(self, connection: Connection) -> None:
+        """A method that displays the given connection as a white line
+        between two zones
+
+        Args:
+            connection (Connection): The connection to display
+        """
         zones = connection.get_linked_zones()
         for zone in self._zones:
             if zone.name == zones[0]:
@@ -118,6 +158,14 @@ class Visualizer:
 
     def on_render_drone(self, current_zone: Zone, next_zone: Zone,
                         progress: float) -> None:
+        """A method that displays a drone, based on its current zone and the
+        zone it is heading towards
+
+        Args:
+            current_zone (Zone): The zone the drone is currently on
+            next_zone (Zone): The zone the drone is heading towards
+            progress (float): The drone's progression between the two zones
+        """
         start_pos = current_zone.get_visual_coords()
         end_pos = next_zone.get_visual_coords()
 
@@ -138,11 +186,21 @@ class Visualizer:
         self._display_surf.blit(self._drone_image, (draw_x, draw_y))
 
     def on_render_turn(self, turn: int) -> None:
+        """A method that displays a counter of turns
+
+        Args:
+            turn (int): The current turn
+        """
         text_surf = self.font.render(f"Turn counter: {str(turn)}", True,
                                      (255, 255, 0))
         self._display_surf.blit(text_surf, (8, 8))
 
     def on_render_occupancy(self, current_time: int) -> None:
+        """A method that displays each zone's occupancy in real-time
+
+        Args:
+            current_time (int): The current turn
+        """
         occupancy_counts = {zone.name: 0 for zone in self._zones}
 
         # Browse schedule to find where each drone is
@@ -177,13 +235,17 @@ class Visualizer:
             self._display_surf.blit(text_surf, (x_text, y_text))
 
     def on_render_connection_occupancy(self, current_time: int) -> None:
+        """A method that displays each connection's occupancy in real-time
+
+        Args:
+            current_time (int): The current turn
+        """
         connection_counts = {}
 
-        # Initialisation des connexions
+        # Initializing connections
         for connection in self._connections:
             z1, z2 = connection.get_linked_zones()
 
-            # clé unique peu importe le sens
             key = tuple(sorted((z1, z2)))
 
             connection_counts[key] = {
@@ -191,13 +253,13 @@ class Visualizer:
                 "capacity": connection.get_capacity()
             }
 
-        # Comptage des drones actuellement en déplacement
+        # Count the number of drones currently in operation
         for drone, path in self.schedule.items():
             for i in range(len(path) - 1):
 
                 t1, z1 = path[i]
 
-                # Gestion des zones restreintes
+                # Restricted zones management
                 if (
                     i + 2 < len(path)
                     and '-' in path[i + 1][1]
@@ -206,7 +268,7 @@ class Visualizer:
                 else:
                     t2, z2 = path[i + 1]
 
-                # Drone en déplacement
+                # Moving drones
                 if t1 <= current_time < t2 and z1 != z2:
 
                     key = tuple(sorted((z1, z2)))
@@ -216,7 +278,7 @@ class Visualizer:
 
                     break
 
-        # Affichage
+        # Display
         for connection in self._connections:
             z1, z2 = connection.get_linked_zones()
             key = tuple(sorted((z1, z2)))
@@ -225,7 +287,7 @@ class Visualizer:
             count = data["count"]
             capacity = data["capacity"]
 
-            # Récupération des coordonnées des zones
+            # Retrieving the coordinates of the zones
             start = None
             end = None
 
@@ -236,7 +298,7 @@ class Visualizer:
                     end = zone.get_visual_coords()
 
             if start and end:
-                # Milieu de la connexion
+                # Middle of the connection
                 mid_x = (start[0] + end[0]) / 2 + self.camera_offset[0]
                 mid_y = (start[1] + end[1]) / 2 + self.camera_offset[1]
 
@@ -253,6 +315,17 @@ class Visualizer:
                 self._display_surf.blit(text_surf, (mid_x, mid_y))
 
     def get_steps(self, turn: int, drone: str, path: list[list[Any]]) -> str:
+        """A method that, for a given turn, drone and path, returns the
+        step of the drone in the form of a string
+
+        Args:
+            turn (int): The current turn
+            drone (str): The drone to process
+            path (list[list[Any]]): The path traveled by the drone
+
+        Returns:
+            str: The formatted step
+        """
         step_summary = ''
 
         for i in range(1, len(path)):
@@ -268,25 +341,28 @@ class Visualizer:
         return step_summary
 
     def on_render_steps(self, turn_steps: str) -> None:
+        """A method that displays the whole summary of steps
+
+        Args:
+            turn_steps (str): A summary of steps at a given turn
+        """
         text_surf = self.font.render(turn_steps, True, (255, 255, 255))
         self._display_surf.blit(text_surf, (100, 100))
 
     def on_cleanup(self) -> None:
+        """A simple cleanup method to leave Pygame properly
+        """
         pygame.display.quit()
         pygame.quit()
 
-    def get_zones(self, path: list[list[Any]], turn: int) -> tuple[Zone, Zone]:
-        for zone in self._zones:
-            if zone.name == path[turn][1]:
-                current_zone = zone
-            if turn >= 0:
-                if zone.name == path[turn + 1][1]:
-                    next_zone = zone
-            elif zone.name == path[turn][1]:
-                next_zone = zone
-        return current_zone, next_zone
-
     def on_execute(self) -> bool:
+        """The main method of the visualizer. Looping during the execution of
+        Pygame, displaying all the necessary and useful information.
+
+        Returns:
+            bool: Based on self.restart. Default to False.
+            See on_event() for more.
+        """
         turn = 0
         self.color_loop = 0.0
         self.global_time = 0.0
@@ -315,8 +391,9 @@ class Visualizer:
                 self.on_render_zone(zone)
 
             turn_steps = 'Current turn :'
-            if self.render_capacity is True:
+            if self.render_area_capacity is True:
                 self.on_render_occupancy(int(self.global_time))
+            if self.render_link_capacity is True:
                 self.on_render_connection_occupancy(int(self.global_time))
 
             # Drones animation management

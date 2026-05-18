@@ -1,4 +1,5 @@
-from src import get_parsed_map, parse_arguments, Visualizer, Zone, \
+from src import ConfigError, MapError, ZoneError, ConnectionError, \
+    get_parsed_map, parse_arguments, Visualizer, Zone, \
     Connection, Drone, Simulation, Dijkstra
 from pathlib import Path
 
@@ -46,6 +47,14 @@ def main() -> None:
 
     except PermissionError:
         print("\033[0;31m[ERROR]: permission denied for input file\033[0;0m")
+    except ConfigError as e:
+        print(f"\033[0;31m[ConfigError] - {e}\033[0;0m")
+    except MapError as e:
+        print(f"\033[0;31m[MapError] - {e}\033[0;0m")
+    except ZoneError as e:
+        print(f"\033[0;31m[ZoneError] - {e}\033[0;0m")
+    except ConnectionError as e:
+        print(f"\033[0;31m[ConnectionError] - {e}\033[0;0m")
     except Exception as e:
         print(f"\033[0;31m{e}\033[0;0m")
 
