@@ -150,7 +150,7 @@ regretted it as it took 2 days before I finally managed to find it...
 ### -> Algorithm explanation
 
 As we've seen, our algorithm has to take into acccount a lot of parameters. My algorithm is what  
-we could call a *Dijkstra space-time*, as it is managing both available space and time.
+we could call a *space-time Dijkstra*, as it is managing both available space and time.
 
 **The global idea is quite simple and can be broken down into several stages:**
 
@@ -196,16 +196,3 @@ During execution, you can hold or press several keys, each performing an action:
 
 With this tool, the user can clearly see what is happening, where and when each drone is moving in  
 real-time, in a playful and enjoyable way.
-
-<!-- Je dois, pour un projet python, realiser un algorithme permettant a un nombre donne de drones de partir d'une zone 'start' pour arriver a une zone 'end', en passant par de multiples autres zones, le tout en depensant le moins de tours possible. Plusieurs parametres sont a prendre en compte :
-
-- Chaque zone a des coordonnees fixes x et y,
-- Chaque zone est liee a une autre par au moins une connexion,
-- Chaque deplacement d'un drone vers une zone prend 1 tour,
-- Certaines zones sont 'restreintes', le deplacement vers celles-ci prend donc deux tours,
-- Les zones ont une capacite maximale : certaines ne peuvent accueillir qu'un drone a la fois, d'autres plus de 1,
-- Les connexions ont aussi une capacite maximale,
-- Un drone ne peut donc pas entrer dans une zone dont la capacite maximale est deja atteinte,
-- Un drone peut attendre sur sa zone actuelle si necessaire.
-
-Pour resoudre ce probleme, je pensais utiliser un algorithme Dijkstra avec prioritized planning, mais cela necessite evidemment l'ecriture d'un dijkstra, que je ne vois pas comment structurer. Peux-tu me donner une structure pour le dijkstra a integrer, puis une pour son integration au sein du graphe espace-temps ? -->
