@@ -59,17 +59,17 @@ class Simulation:
             time_b, zone_b = path[i + 1] if '-' not in path[i + 1][1] else \
                 path[i + 2]
 
-            # 1. Zone de départ : occupée uniquement au temps de départ
+            # Current zone
             global_state['nodes'][(zone_a, time_a)] = \
                 global_state['nodes'].get((zone_a, time_a), 0) + 1
 
-            # 2. Lien : occupé pendant tout le déplacement
+            # Link
             for t in range(int(time_a), int(time_b)):
                 edge_key = tuple(sorted([zone_a, zone_b])) + (t,)
                 global_state['edges'][edge_key] = \
                     global_state['edges'].get(edge_key, 0) + 1
 
-        # Dernière zone à l'arrivée
+        # Last zone
         last_time, last_zone = path[-1]
         key = (last_zone, last_time)
         global_state['nodes'][key] = global_state['nodes'].get(key, 0) + 1
