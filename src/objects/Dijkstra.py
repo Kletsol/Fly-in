@@ -37,9 +37,11 @@ class Dijkstra(BaseAlgorithm):
             if turn > self.max_time:
                 continue
 
+            # Return the fastest path
             if curr_zone_name == self.end.name:
-                return path, turn  # Return the fastest path
+                return path, turn
 
+            # If a better state is known, ignore the current one
             key = (curr_zone_name, turn)
             if key in visited:
                 if visited[key] <= (cost, benefit):
