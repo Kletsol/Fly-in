@@ -419,6 +419,10 @@ class Visualizer:
                                          zone.name == z2)
                         self.on_render_drone(zone, next_zone, local_progress)
                         break
+                    elif self.global_time > len(path) - 1:
+                        zone = next(zone for zone in self._zones if
+                                    zone.name == path[-1][1])
+                        self.on_render_drone(zone, zone, local_progress)
 
             if [int(self.global_time) + 1, turn_steps.split(':')[-1]] not in \
                     self.logs and int(self.global_time) < final_turn:

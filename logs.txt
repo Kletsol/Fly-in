@@ -1,6 +1,0 @@
-Turn 1: D1-gate_hell1
-
-Turn 2: D1-maze_trap_a1 D2-gate_hell1
-
-Turn 3: D1-maze_trap_a2 D2-maze_trap_a1 D3-gate_hell1
-
