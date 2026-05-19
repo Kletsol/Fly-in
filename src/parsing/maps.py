@@ -1,4 +1,5 @@
 from typing import Any, Optional
+import time
 
 
 class ConfigError(Exception):
@@ -81,13 +82,21 @@ def get_parsed_map(path: str) -> dict[str, Any]:
                 except Exception as e:
                     raise Exception(f"\033[0;31mLine {line_count + comm_count}"
                                     f" - {e}\033[0;0m")
-
-                if line_count > 1:
-                    raise ConfigError("[ERROR]: nb_drones has to be "
-                                      "on first line")
+                if len(drones) > 1000:
+                    print("\033[0;33m[WARNING]: An excessive number of drones "
+                          "may overload the computer and cause an interminable"
+                          " wait time, as the computer is not powerful enough."
+                          " If you wish to avoid this, please close the "
+                          "program within 50 seconds.\033[0;0m")
+                    try:
+                        time.sleep(42)
+                    except KeyboardInterrupt:
+                        raise KeyboardInterrupt()
 
             elif drones_count < 1:
-                raise ConfigError("[ERROR]: no nb_drones found in file")
+                raise ConfigError("[ERROR]: no nb_drones found in file. Please"
+                                  " make sure it is present and written on the"
+                                  " first line ")
 
             # Start
             elif line.startswith(('start_hub', 'end_hub', 'hub')):

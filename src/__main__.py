@@ -57,6 +57,9 @@ def main() -> None:
         print(f"\033[0;31m[ConnectionError] - {e}\033[0;0m")
     except Exception as e:
         print(f"\033[0;31m{e}\033[0;0m")
+    except KeyboardInterrupt:
+        print('\033[H\033[J')
+        print("\033[0;32mAborted - See you soon :D\033[0;0m")
 
 
 if __name__ == '__main__':
